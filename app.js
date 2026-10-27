@@ -252,7 +252,8 @@ function addToCart(id) {
   }
 
   renderCart();
-  showToast("Added to your bag!");
+openCart();
+showToast("Added to your bag!");
 }
 
 function renderCart() {
