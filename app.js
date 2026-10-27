@@ -26,3 +26,34 @@ async function loadProducts() {
 }
 
 loadProducts();
+// Display products on the KENNIX website
+async function displayProducts() {
+  const products = await loadProducts();
+  const container = document.getElementById("product-grid");
+
+  if (!container) {
+    console.error("Product display area not found.");
+    return;
+  }
+
+  if (!products.length) {
+    container.innerHTML = "<p>No products available yet.</p>";
+    return;
+  }
+
+  container.innerHTML = products.map(product => `
+    <div class="product-card">
+      <img
+        src="${product.Image_Url || 'https://placehold.co/400x400?text=KENNIX'}"
+        alt="${product.Name || 'KENNIX product'}"
+        style="width:100%;height:220px;object-fit:cover;"
+      >
+      <h3>${product.Name || "Unnamed product"}</h3>
+      <p>${product.Description || ""}</p>
+      <p>₦${Number(product.Price || 0).toLocaleString("en-NG")}</p>
+      <p>${product.Category || ""}</p>
+    </div>
+  `).join("");
+}
+
+displayProducts();
