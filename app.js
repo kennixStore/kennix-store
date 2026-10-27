@@ -25,7 +25,7 @@ async function loadProducts() {
   return data;
 }
 
-loadProducts();
+loadProducts(); 
 // Display products on the KENNIX website
 async function displayProducts() {
   const products = await loadProducts();
