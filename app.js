@@ -1,248 +1,449 @@
-const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
+"use strict";
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// KENNIX Supabase connection
+const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
 let products = [];
 let cart = [];
+let activeCategory = "All";
+let searchText = "";
+let sortMode = "featured";
 
-const money = amount => "₦" + Number(amount).toLocaleString("en-NG");
 const get = id => document.getElementById(id);
 
+const money = amount =>
+  "₦" + Number(amount || 0).toLocaleString("en-NG");
+
+function showMessage(message) {
+  const container = get("product-grid");
+  if (container) container.textContent = message;
+}
+
+// Load products from Supabase
 async function loadProducts() {
-const { data, error } = await db
-.from("products")
-.select("*")
-.eq("Is_active", true);
+  const container = get("product-grid");
 
-if (error) {
-console.error(error.message);
-return [];
+  if (container) {
+    container.textContent = "Loading KENNIX products...";
+  }
+
+  try {
+    const { data, error } = await db
+      .from("products")
+      .select("*")
+      .eq("Is_active", true);
+
+    if (error) throw error;
+
+    products = data || [];
+    renderProducts();
+
+    if (!products.length) {
+      showMessage(
+        "No active products found. Check product status in your admin dashboard."
+      );
+    }
+  } catch (error) {
+    console.error("KENNIX product loading error:", error);
+
+    showMessage(
+      "Products could not load. Please refresh and try again."
+    );
+  }
 }
 
-return data || [];
+// Product cards
+function renderProducts() {
+  const container = get("product-grid");
+  if (!container) return;
+
+  container.replaceChildren();
+
+  let visible = products.filter(product => {
+    const matchesCategory =
+      activeCategory === "All" ||
+      String(product.Category || "").toLowerCase() ===
+        activeCategory.toLowerCase();
+
+    const searchableText = [
+      product.Name,
+      product.Category,
+      product.Description
+    ].join(" ").toLowerCase();
+
+    return matchesCategory && searchableText.includes(searchText);
+  });
+
+  if (sortMode === "low") {
+    visible.sort((a, b) => Number(a.Price) - Number(b.Price));
+  }
+
+  if (sortMode === "high") {
+    visible.sort((a, b) => Number(b.Price) - Number(a.Price));
+  }
+
+  if (!visible.length) {
+    showMessage(
+      products.length
+        ? "No products match your search."
+        : "No active products found."
+    );
+    return;
+  }
+
+  visible.forEach(product => {
+    const card = document.createElement("article");
+    card.className = "product-card";
+
+    const art = document.createElement("div");
+    art.className = "product-art";
+
+    if (product.Image_Url) {
+      const image = document.createElement("img");
+      image.src = product.Image_Url;
+      image.alt = product.Name || "KENNIX product";
+      image.loading = "lazy";
+      image.style.cssText =
+        "width:100%;height:100%;object-fit:cover;position:absolute;inset:0";
+
+      image.onerror = () => {
+        image.remove();
+        art.textContent = "KENNIX";
+      };
+
+      art.appendChild(image);
+    } else {
+      art.textContent = "KENNIX";
+    }
+
+    const tag = document.createElement("span");
+    tag.className = "product-tag";
+    tag.textContent = product.Category || "KENNIX";
+
+    const addButton = document.createElement("button");
+    addButton.className = "add-btn";
+    addButton.type = "button";
+    addButton.textContent = "+";
+    addButton.setAttribute(
+      "aria-label",
+      "Add " + (product.Name || "product") + " to bag"
+    );
+    addButton.addEventListener("click", () => addToCart(product.id));
+
+    art.append(tag, addButton);
+
+    const info = document.createElement("div");
+    info.className = "product-info";
+
+    const details = document.createElement("div");
+
+    const name = document.createElement("h3");
+    name.textContent = product.Name || "Unnamed product";
+
+    const description = document.createElement("p");
+    description.textContent = product.Description || "";
+
+    details.append(name, description);
+
+    const price = document.createElement("span");
+    price.className = "price";
+    price.textContent = money(product.Price);
+
+    info.append(details, price);
+    card.append(art, info);
+    container.appendChild(card);
+  });
 }
 
-function showProducts() {
-const container = get("product-grid");
-if (!container) return;
+// Search
+function setupSearch() {
+  const searchButton = document.querySelector(".search-toggle");
+  if (!searchButton) return;
 
-if (!products.length) {
-container.textContent = "No products available yet.";
-return;
+  let input = get("product-search");
+
+  if (!input) {
+    input = document.createElement("input");
+    input.id = "product-search";
+    input.type = "search";
+    input.placeholder = "Search clothes, shoes, bags...";
+    input.setAttribute("aria-label", "Search products");
+    input.style.cssText =
+      "display:none;width:100%;padding:12px;margin:12px 0;background:#19191f;color:white;border:1px solid #51445f;border-radius:6px";
+
+    const shop = get("shop");
+    if (shop) {
+      shop.insertBefore(input, shop.children[1] || null);
+    }
+
+    input.addEventListener("input", () => {
+      searchText = input.value.trim().toLowerCase();
+      renderProducts();
+    });
+  }
+
+  searchButton.addEventListener("click", () => {
+    input.style.display =
+      input.style.display === "none" ? "block" : "none";
+
+    if (input.style.display === "block") {
+      input.focus();
+      get("shop")?.scrollIntoView({ behavior: "smooth" });
+    }
+  });
 }
 
-container.replaceChildren();
+// Category buttons
+function setupFilters() {
+  document.querySelectorAll("[data-filter]").forEach(button => {
+    button.addEventListener("click", event => {
+      event.preventDefault();
 
-products.forEach(product => {
-const card = document.createElement("div");
-card.className = "product-card";
+      activeCategory = button.dataset.filter || "All";
 
-const img = document.createElement("img");
-img.src = product.Image_Url || "https://placehold.co/400x400?text=KENNIX";
-img.alt = product.Name || "KENNIX product";
-img.style.cssText = "width:100%;height:220px;object-fit:cover";
+      document.querySelectorAll(".filter").forEach(filter => {
+        filter.classList.toggle(
+          "active",
+          filter.dataset.filter === activeCategory
+        );
+      });
 
-const title = document.createElement("h3");
-title.textContent = product.Name || "Unnamed product";
+      renderProducts();
 
-const description = document.createElement("p");
-description.textContent = product.Description || "";
-
-const category = document.createElement("p");
-category.textContent = product.Category || "";
-
-const price = document.createElement("p");
-price.textContent = money(product.Price);
-
-const button = document.createElement("button");
-button.textContent = "ADD TO BAG +";
-button.className = "primary-btn";
-button.onclick = () => addToCart(product.id);
-
-card.append(img, title, description, category, price, button);
-container.appendChild(card);
-
-});
+      get("shop")?.scrollIntoView({ behavior: "smooth" });
+    });
+  });
 }
 
+// Sorting
+function setupSorting() {
+  const select = get("sort");
+  if (!select) return;
+
+  select.addEventListener("change", () => {
+    sortMode = select.value;
+    renderProducts();
+  });
+}
+
+// Shopping bag
 function addToCart(id) {
-const product = products.find(p => String(p.id) === String(id));
-if (!product) return;
+  const product = products.find(
+    item => String(item.id) === String(id)
+  );
 
-const existing = cart.find(item => String(item.id) === String(id));
+  if (!product) return;
 
-if (existing) {
-existing.quantity++;
-} else {
-cart.push({ ...product, quantity: 1 });
-}
+  const existing = cart.find(
+    item => String(item.id) === String(id)
+  );
 
-renderCart();
-showToast("Added to your bag!");
+  if (existing) {
+    existing.quantity++;
+  } else {
+    cart.push({ ...product, quantity: 1 });
+  }
+
+  renderCart();
+  showToast("Added to your bag!");
 }
 
 function renderCart() {
-const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-const total = cart.reduce((sum, item) => sum + Number(item.Price) * item.quantity, 0);
+  const count = cart.reduce(
+    (sum, item) => sum + item.quantity, 0
+  );
 
-if (get("cart-count")) get("cart-count").textContent = count;
-if (get("drawer-count")) get("drawer-count").textContent = "(${count})";
-if (get("subtotal")) get("subtotal").textContent = money(total);
+  const total = cart.reduce(
+    (sum, item) => sum + Number(item.Price) * item.quantity, 0
+  );
 
-const container = get("cart-items");
-if (!container) return;
+  if (get("cart-count")) {
+    get("cart-count").textContent = count;
+  }
 
-container.replaceChildren();
+  if (get("drawer-count")) {
+    get("drawer-count").textContent = "(" + count + ")";
+  }
 
-if (!cart.length) {
-container.textContent = "Your bag is waiting for something good.";
-return;
+  if (get("subtotal")) {
+    get("subtotal").textContent = money(total);
+  }
+
+  const container = get("cart-items");
+  if (!container) return;
+
+  container.replaceChildren();
+
+  if (!cart.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-cart";
+    empty.textContent = "Your bag is waiting for something good.";
+    container.appendChild(empty);
+    return;
+  }
+
+  cart.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "cart-row";
+
+    const thumb = document.createElement("div");
+    thumb.className = "cart-thumb";
+    thumb.textContent = "K";
+
+    const details = document.createElement("div");
+
+    const name = document.createElement("h4");
+    name.textContent = item.Name;
+
+    const price = document.createElement("p");
+    price.textContent = money(item.Price);
+
+    const quantity = document.createElement("div");
+    quantity.className = "qty";
+
+    const minus = document.createElement("button");
+    minus.type = "button";
+    minus.textContent = "−";
+    minus.setAttribute("aria-label", "Decrease quantity");
+    minus.addEventListener("click", () => {
+      item.quantity--;
+
+      if (item.quantity <= 0) {
+        cart = cart.filter(p => p.id !== item.id);
+      }
+
+      renderCart();
+    });
+
+    const amount = document.createElement("span");
+    amount.textContent = item.quantity;
+
+    const plus = document.createElement("button");
+    plus.type = "button";
+    plus.textContent = "+";
+    plus.setAttribute("aria-label", "Increase quantity");
+    plus.addEventListener("click", () => {
+      item.quantity++;
+      renderCart();
+    });
+
+    quantity.append(minus, amount, plus);
+    details.append(name, price, quantity);
+
+    const remove = document.createElement("button");
+    remove.className = "remove-btn";
+    remove.type = "button";
+    remove.textContent = "REMOVE";
+    remove.addEventListener("click", () => {
+      cart = cart.filter(p => p.id !== item.id);
+      renderCart();
+    });
+
+    row.append(thumb, details, remove);
+    container.appendChild(row);
+  });
 }
 
-cart.forEach(item => {
-const row = document.createElement("div");
-row.style.cssText = "padding:14px 0;border-bottom:1px solid #ddd";
-
-const name = document.createElement("h3");
-name.textContent = item.Name;
-
-const price = document.createElement("p");
-price.textContent = money(item.Price) + " each";
-
-const quantity = document.createElement("p");
-quantity.textContent = "Quantity: " + item.quantity;
-
-const decrease = document.createElement("button");
-decrease.textContent = "−";
-decrease.style.width = "30%";
-decrease.onclick = () => {
-  item.quantity--;
-  if (item.quantity <= 0) cart = cart.filter(p => p.id !== item.id);
-  renderCart();
-};
-
-const increase = document.createElement("button");
-increase.textContent = "+";
-increase.style.width = "30%";
-increase.onclick = () => {
-  item.quantity++;
-  renderCart();
-};
-
-row.append(name, price, quantity, decrease, increase);
-container.appendChild(row);
-
-});
-}
-
-function showToast(text) {
-const toast = get("toast");
-if (!toast) return;
-toast.textContent = text;
-toast.classList.add("show");
-setTimeout(() => toast.classList.remove("show"), 2500);
-}
-
+// Correct overlay class: styles.css uses "open"
 function openCart() {
-get("overlay")?.classList.add("active");
-get("cart-drawer")?.classList.add("open");
-get("cart-drawer")?.setAttribute("aria-hidden", "false");
+  get("overlay")?.classList.add("open");
+  get("cart-drawer")?.classList.add("open");
+  get("cart-drawer")?.setAttribute("aria-hidden", "false");
 }
 
 function closeCart() {
-get("overlay")?.classList.remove("active");
-get("cart-drawer")?.classList.remove("open");
-get("cart-drawer")?.setAttribute("aria-hidden", "true");
+  get("overlay")?.classList.remove("open");
+  get("cart-drawer")?.classList.remove("open");
+  get("cart-drawer")?.setAttribute("aria-hidden", "true");
 }
 
-get("open-cart")?.addEventListener("click", openCart);
-get("close-cart")?.addEventListener("click", closeCart);
-get("overlay")?.addEventListener("click", closeCart);
+function showToast(message) {
+  const toast = get("toast");
+  if (!toast) return;
 
-get("checkout-btn")?.addEventListener("click", () => {
-if (!cart.length) {
-alert("Your bag is empty.");
-return;
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  setTimeout(() => toast.classList.remove("show"), 2500);
 }
 
-showCheckout();
-});
+// Mobile navigation
+function setupMenu() {
+  const menuButton = get("menu-toggle");
+  const nav = document.querySelector(".desktop-nav");
 
-function showCheckout() {
-if (get("checkout-form")) return;
+  if (!menuButton || !nav) return;
 
-const form = document.createElement("form");
-form.id = "checkout-form";
-form.style.cssText = "padding:16px;background:white;border-radius:10px;margin-top:15px";
+  menuButton.addEventListener("click", () => {
+    const isOpen = nav.style.display === "flex";
 
-const heading = document.createElement("h3");
-heading.textContent = "Delivery details";
+    nav.style.cssText = isOpen
+      ? ""
+      : "display:flex;flex-direction:column;gap:18px;position:absolute;top:78px;left:0;right:0;padding:24px;background:#101014;z-index:10;border-bottom:1px solid #34313b";
 
-form.innerHTML = "<label>Full name</label> <input name="customer_name" required maxlength="100" autocomplete="name"> <label>Phone number</label> <input name="customer_phone" required maxlength="30" autocomplete="tel"> <label>Delivery address</label> <textarea name="delivery_address" required maxlength="500" autocomplete="street-address"></textarea> <p id="checkout-total"></p> <button type="submit">PLACE ORDER</button> <p class="small">Payment is not collected online yet. We'll confirm your order before payment.</p>";
+    menuButton.setAttribute("aria-expanded", String(!isOpen));
+  });
 
-get("cart-drawer").appendChild(form);
-
-const total = cart.reduce((sum, item) => sum + Number(item.Price) * item.quantity, 0);
-get("checkout-total").textContent = "Order total: " + money(total);
-
-form.addEventListener("submit", submitOrder);
+  nav.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      nav.style.cssText = "";
+      menuButton.setAttribute("aria-expanded", "false");
+    });
+  });
 }
 
-async function submitOrder(event) {
-event.preventDefault();
+// Checkout: collect details, but do not pretend an order was submitted.
+// A secure server-side order endpoint must be connected first.
+function setupCheckout() {
+  const button = get("checkout-btn");
+  if (!button) return;
 
-const form = event.currentTarget;
-const customerName = form.elements.customer_name.value.trim();
-const customerPhone = form.elements.customer_phone.value.trim();
-const deliveryAddress = form.elements.delivery_address.value.trim();
+  button.addEventListener("click", () => {
+    if (!cart.length) {
+      alert("Your bag is empty.");
+      return;
+    }
 
-if (!cart.length) {
-alert("Your bag is empty.");
-return;
+    alert(
+      "KENNIX checkout is not connected yet. " +
+      "Your bag is ready, but no order or payment has been submitted."
+    );
+  });
 }
 
-const button = form.querySelector('button[type="submit"]');
-button.disabled = true;
-button.textContent = "PLACING ORDER...";
+function setupNewsletter() {
+  const form = get("newsletter-form");
 
-/*
-
-* Each product becomes a separate row in the existing orders table.
-* The current table stores one product per order row.
-  */
-  const orderRows = cart.map(item => ({
-  customer_name: customerName,
-  customer_phone: customerPhone,
-  delivery_address: deliveryAddress,
-  product_name: item.Name,
-  quantity: item.quantity,
-  unit_price: Number(item.Price),
-  status: "Pending"
-  }));
-
-const { error } = await db.from("orders").insert(orderRows);
-
-if (error) {
-console.error(error);
-alert("Order could not be placed: " + error.message);
-button.disabled = false;
-button.textContent = "PLACE ORDER";
-return;
+  if (form) {
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      alert("Newsletter registration is not connected yet.");
+    });
+  }
 }
 
-cart = [];
-renderCart();
-form.remove();
-closeCart();
-
-alert("Thank you! Your order has been received. KENNIX will contact you to confirm it.");
-}
-
+// Start the website
 async function init() {
-products = await loadProducts();
-showProducts();
-renderCart();
+  get("open-cart")?.addEventListener("click", openCart);
+  get("close-cart")?.addEventListener("click", closeCart);
+  get("overlay")?.addEventListener("click", closeCart);
+
+  setupSearch();
+  setupFilters();
+  setupSorting();
+  setupMenu();
+  setupCheckout();
+  setupNewsletter();
+
+  renderCart();
+  await loadProducts();
 }
 
 init();
