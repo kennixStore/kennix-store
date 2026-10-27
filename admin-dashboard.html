@@ -1,263 +1,198 @@
-
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KENNIX | Admin Dashboard</title>
-  <style>
-    * { box-sizing: border-box; }body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f6f4ff;
-  color: #24213b;
-}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KENNIX Admin</title>
 
-header {
-  background: white;
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  box-shadow: 0 2px 12px #24105a12;
-}
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-.logo {
-  color: #6d28d9;
-  font-size: 23px;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-
-.tagline {
-  margin-top: 4px;
-  font-size: 11px;
-  color: #77718c;
-}
-
-button {
-  border: 0;
-  border-radius: 9px;
-  padding: 11px 14px;
-  background: #6d28d9;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.logout {
-  background: #eee7ff;
-  color: #5520a8;
-}
-
-main {
-  max-width: 900px;
-  margin: auto;
-  padding: 22px 16px;
-}
-
-.welcome {
-  margin-bottom: 22px;
-}
-
-.welcome h1 {
-  margin-bottom: 6px;
-  font-size: 25px;
-}
-
-.welcome p {
-  margin-top: 0;
-  color: #77718c;
-  font-size: 14px;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 22px;
-}
-
-.stat, .panel {
-  background: white;
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 3px 14px #24105a0b;
-}
-
-.stat span {
-  display: block;
-  color: #77718c;
-  font-size: 13px;
-  margin-bottom: 9px;
-}
-
-.stat strong {
-  font-size: 26px;
-  color: #6d28d9;
-}
-
-.panel h2 {
-  font-size: 19px;
-  margin-top: 0;
-}
-
-#status {
-  color: #6d28d9;
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-th, td {
-  text-align: left;
-  padding: 12px 8px;
-  border-bottom: 1px solid #eeeaf6;
-}
-
-th { color: #77718c; }
-
-.note {
-  color: #77718c;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-@media (max-width: 420px) {
-  header { padding: 15px 12px; }
-  .logo { font-size: 20px; }
-  button { padding: 10px; }
-  .stat, .panel { padding: 14px; }
-}
-
-  </style>
+<style>
+body{font-family:Arial;background:#f5f3ff;margin:0;padding:20px;color:#222}
+header{background:#5427a8;color:white;padding:20px;border-radius:12px}
+.card{background:white;padding:18px;margin:18px 0;border-radius:12px}
+input,textarea,select,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:7px;border:1px solid #ccc}
+button{background:#5427a8;color:white;border:0;font-weight:bold}
+.product{border-bottom:1px solid #ddd;padding:12px 0}
+img{max-width:100%;height:100px;object-fit:cover}
+</style>
 </head>
+
 <body>
-  <header>
-    <div>
-      <div class="logo">KENNIX</div>
-      <div class="tagline">Your World. Your Style. Your Choice.</div>
-    </div>
-    <button class="logout" id="logout-button">Sign Out</button>
-  </header>  <main>
-    <section class="welcome">
-      <h1>Store Dashboard</h1>
-      <p>Manage your KENNIX store from one place.</p>
-    </section><section class="stats">
-  <div class="stat">
-    <span>Active Products</span>
-    <strong id="product-count">—</strong>
-  </div>
-  <div class="stat">
-    <span>Store Status</span>
-    <strong style="font-size:18px">Online</strong>
-  </div>
+<header>
+<h1>KENNIX Admin</h1>
+<p>Manage your fashion store</p>
+<button id="logout">Log Out</button>
+</header>
+
+<section class="card">
+<h2>Add New Product</h2>
+
+<form id="productForm">
+<input id="name" placeholder="Product name" required>
+
+<select id="category" required>
+<option value="">Choose category</option>
+<option>Clothes</option>
+<option>Shoes</option>
+<option>Bags</option>
+<option>Accessories</option>
+</select>
+
+<textarea id="description" placeholder="Product description" required></textarea>
+
+<input id="price" type="number" min="1" placeholder="Price in naira" required>
+
+<label>Product picture</label>
+<input id="image" type="file" accept="image/*" required>
+
+<button type="submit">Upload Product</button>
+<p id="message"></p>
+</form>
 </section>
 
-<section class="panel">
-  <h2>Your Products</h2>
-  <p id="status">Checking your admin session...</p>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Category</th>
-          <th>Price</th>
-        </tr>
-      </thead>
-      <tbody id="product-list"></tbody>
-    </table>
-  </div>
-
-  <p class="note">
-    This is the first dashboard version. Product creation, photo uploads,
-    editing, and order management will be added next.
-  </p>
+<section class="card">
+<h2>Your Products</h2>
+<div id="products">Loading products...</div>
 </section>
 
-  </main>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  <script>
-    const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
+<script>
+// KEEP YOUR EXISTING VALUES HERE
+const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
 
-    const db = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY
-    );
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
-    async function startDashboard() {
-      const status = document.getElementById("status");
+const form = document.getElementById("productForm");
+const message = document.getElementById("message");
 
-      const { data: sessionData, error: sessionError } =
-        await db.auth.getSession();
+async function checkLogin() {
+  const { data } = await db.auth.getSession();
 
-      if (sessionError || !sessionData.session) {
-        window.location.replace("admin.html");
-        return;
-      }
+  if (!data.session) {
+    location.href = "admin.html";
+    return false;
+  }
+  return true;
+}
 
-      status.textContent = "Loading products...";
+async function loadProducts() {
+  const box = document.getElementById("products");
 
-      const { data: products, error } = await db
-        .from("products")
-        .select("*")
-        .order("id", { ascending: false });
+  const { data, error } = await db
+    .from("products")
+    .select("*")
+    .order("id", { ascending: false });
 
-      if (error) {
-        status.textContent =
-          "Could not load products. Please check your database permissions.";
-        console.error(error.message);
-        return;
-      }
+  if (error) {
+    box.textContent = "Error: " + error.message;
+    return;
+  }
 
-      document.getElementById("product-count").textContent =
-        products.filter(product => product.Is_active === true).length;
+  box.replaceChildren();
 
-      const list = document.getElementById("product-list");
+  if (!data.length) {
+    box.textContent = "No products yet.";
+    return;
+  }
 
-      if (!products.length) {
-        list.innerHTML =
-          '<tr><td colspan="3">No products found.</td></tr>';
-      } else {
-        list.innerHTML = products.map(product => `
-          <tr>
-            <td>${escapeHTML(product.Name || "Unnamed product")}</td>
-            <td>${escapeHTML(product.Category || "—")}</td>
-            <td>₦${Number(product.Price || 0).toLocaleString("en-NG")}</td>
-          </tr>
-        `).join("");
-      }
+  data.forEach(p => {
+    const item = document.createElement("div");
+    item.className = "product";
 
-      status.textContent = "Dashboard connected successfully.";
+    const title = document.createElement("h3");
+    title.textContent = p.Name || "Unnamed product";
+
+    const category = document.createElement("p");
+    category.textContent = p.Category || "";
+
+    const price = document.createElement("p");
+    price.textContent = "₦" + Number(p.Price || 0).toLocaleString("en-NG");
+
+    item.append(title, category, price);
+
+    if (p.Image_Url) {
+      const img = document.createElement("img");
+      img.src = p.Image_Url;
+      img.alt = p.Name || "Product";
+      item.prepend(img);
     }
 
-    function escapeHTML(value) {
-      return String(value).replace(/[&<>"']/g, char => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      })[char]);
-    }
+    box.appendChild(item);
+  });
+}
 
-    document.getElementById("logout-button").addEventListener(
-      "click", async () => {
-        await db.auth.signOut();
-        window.location.replace("admin.html");
-      }
-    );
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
 
-    startDashboard();
-  </script></body>
+  if (!(await checkLogin())) return;
+
+  const name = document.getElementById("name").value.trim();
+  const category = document.getElementById("category").value;
+  const description = document.getElementById("description").value.trim();
+  const price = Number(document.getElementById("price").value);
+  const file = document.getElementById("image").files[0];
+
+  if (!file || !file.type.startsWith("image/")) {
+    message.textContent = "Choose a valid image.";
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    message.textContent = "Image must be under 5 MB.";
+    return;
+  }
+
+  message.textContent = "Uploading product...";
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const imagePath = Date.now() + "_" + safeName;
+
+  const { error: uploadError } = await db.storage
+    .from("product-images")
+    .upload(imagePath, file);
+
+  if (uploadError) {
+    message.textContent = "Image upload failed: " + uploadError.message;
+    return;
+  }
+
+  const { data: imageData } = db.storage
+    .from("product-images")
+    .getPublicUrl(imagePath);
+
+  const { error: insertError } = await db
+    .from("products")
+    .insert({
+      Name: name,
+      Category: category,
+      Description: description,
+      Price: price,
+      Image_Url: imageData.publicUrl,
+      Is_active: true
+    });
+
+  if (insertError) {
+    message.textContent = "Product save failed: " + insertError.message;
+    return;
+  }
+
+  form.reset();
+  message.textContent = "Product added successfully!";
+  loadProducts();
+});
+
+document.getElementById("logout").addEventListener("click", async () => {
+  await db.auth.signOut();
+  location.href = "admin.html";
+});
+
+(async () => {
+  if (await checkLogin()) loadProducts();
+})();
+</script>
+</body>
 </html>
