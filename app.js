@@ -179,9 +179,25 @@ form.style.cssText = "padding:16px;background:white;border-radius:10px;margin-to
 const heading = document.createElement("h3");
 heading.textContent = "Delivery details";
 
-form.innerHTML = "<label>Full name</label> <input name="customer_name" required maxlength="100" autocomplete="name"> <label>Phone number</label> <input name="customer_phone" required maxlength="30" autocomplete="tel"> <label>Delivery address</label> <textarea name="delivery_address" required maxlength="500" autocomplete="street-address"></textarea> <p id="checkout-total"></p> <button type="submit">PLACE ORDER</button> <p class="small">Payment is not collected online yet. We'll confirm your order before payment.</p>";
+form.innerHTML = `
+  <label>Full name</label>
+  <input name="customer_name" required maxlength="100" autocomplete="name">
 
-get("cart-drawer").appendChild(form);
+  <label>Phone number</label>
+  <input name="customer_phone" required maxlength="30" autocomplete="tel">
+
+  <label>Delivery address</label>
+  <textarea name="delivery_address" required maxlength="500" autocomplete="street-address"></textarea>
+
+  <p id="checkout-total"></p>
+
+  <button type="submit">PLACE ORDER</button>
+
+  <p class="small">
+    Payment is not collected online yet.
+    We'll confirm your order before payment.
+  </p>
+`;
 
 const total = cart.reduce((sum, item) => sum + Number(item.Price) * item.quantity, 0);
 get("checkout-total").textContent = "Order total: " + money(total);
