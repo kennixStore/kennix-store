@@ -248,5 +248,3 @@ renderCart();
 }
 
 init();
-
-This is the code
