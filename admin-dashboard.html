@@ -5,15 +5,17 @@
 <title>KENNIX Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body{font-family:Arial;background:#f5f3ff;margin:0;padding:20px;color:#222}
+body{font-family:Arial;background:#f5f3ff;margin:0;padding:16px;color:#222}
 header{background:#5427a8;color:white;padding:20px;border-radius:12px}
-.card{background:white;padding:18px;margin:18px 0;border-radius:12px}
+.card{background:white;padding:16px;margin:18px 0;border-radius:12px}
 input,textarea,select,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:7px;border:1px solid #ccc}
 button{background:#5427a8;color:white;border:0;font-weight:bold;cursor:pointer}
-.product{border-bottom:1px solid #ddd;padding:12px 0}
+.product,.order{border-bottom:1px solid #ddd;padding:14px 0;overflow-wrap:anywhere}
 img{max-width:100%;height:100px;object-fit:cover;display:block}
 .editBtn{background:#1769aa}
 .deleteBtn{background:#c62828}
+.status{background:#f5f3ff}
+.small{font-size:14px;color:#555}
 </style>
 </head>
 <body><header>
@@ -21,7 +23,11 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <p>Manage your fashion store</p>
 <button id="logout">Log Out</button>
 </header><section class="card">
-<h2>Add New Product</h2>
+<h2>📦 Customer Orders</h2>
+<button id="refreshOrders">Refresh Orders</button>
+<div id="orders">Loading orders...</div>
+</section><section class="card">
+<h2>➕ Add New Product</h2>
 <form id="productForm">
 <input id="name" placeholder="Product name" required><select id="category" required>
 <option value="">Choose category</option>
@@ -36,7 +42,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <p id="message"></p>
 </form>
 </section><section class="card">
-<h2>Your Products</h2>
+<h2>🛍️ Your Products</h2>
 <div id="products">Loading products...</div>
 </section><script>
 const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
@@ -59,6 +65,101 @@ async function checkLogin() {
   }
   return true;
 }
+
+/* CUSTOMER ORDERS */
+
+async function loadOrders() {
+  const box = document.getElementById("orders");
+  box.textContent = "Loading orders...";
+
+  const { data, error } = await db
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    box.textContent = "Could not load orders: " + error.message;
+    return;
+  }
+
+  box.replaceChildren();
+
+  if (!data.length) {
+    box.textContent = "No customer orders yet.";
+    return;
+  }
+
+  data.forEach(order => {
+    const item = document.createElement("div");
+    item.className = "order";
+
+    const title = document.createElement("h3");
+    title.textContent = "Order #" + order.id;
+
+    const details = document.createElement("p");
+    details.textContent =
+      "Customer: " + order.customer_name +
+      "\nPhone: " + order.customer_phone +
+      "\nAddress: " + order.delivery_address +
+      "\nProduct: " + order.product_name +
+      "\nQuantity: " + order.quantity +
+      "\nUnit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
+      "\nTotal: ₦" + Number(order.total_amount).toLocaleString("en-NG");
+
+    details.style.whiteSpace = "pre-line";
+
+    const date = document.createElement("p");
+    date.className = "small";
+    date.textContent = "Ordered: " + new Date(order.created_at).toLocaleString();
+
+    const label = document.createElement("label");
+    label.textContent = "Order status";
+
+    const status = document.createElement("select");
+    status.className = "status";
+
+    ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"]
+      .forEach(value => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        status.appendChild(option);
+      });
+
+    status.value = order.status;
+
+    const save = document.createElement("button");
+    save.textContent = "Update Order Status";
+
+    save.onclick = async () => {
+      save.disabled = true;
+      save.textContent = "Saving...";
+
+      const { error } = await db
+        .from("orders")
+        .update({ status: status.value })
+        .eq("id", order.id);
+
+      save.disabled = false;
+      save.textContent = "Update Order Status";
+
+      if (error) {
+        alert("Status update failed: " + error.message);
+        return;
+      }
+
+      alert("Order #" + order.id + " updated to " + status.value + ".");
+      loadOrders();
+    };
+
+    item.append(title, details, date, label, status, save);
+    box.appendChild(item);
+  });
+}
+
+document.getElementById("refreshOrders").onclick = loadOrders;
+
+/* LOAD PRODUCTS */
 
 async function loadProducts() {
   const box = document.getElementById("products");
@@ -107,7 +208,6 @@ async function loadProducts() {
     const editBtn = document.createElement("button");
     editBtn.textContent = "Edit Product ✏️";
     editBtn.className = "editBtn";
-
     editBtn.onclick = () => editProduct(p);
 
     const deleteBtn = document.createElement("button");
@@ -115,7 +215,7 @@ async function loadProducts() {
     deleteBtn.className = "deleteBtn";
 
     deleteBtn.onclick = async () => {
-      if (!confirm(`Delete "${p.Name}" permanently?`)) return;
+      if (!confirm('Delete "' + p.Name + '" permanently?')) return;
 
       const { error } = await db
         .from("products")
@@ -136,25 +236,29 @@ async function loadProducts() {
   });
 }
 
+/* EDIT PRODUCT */
+
 async function editProduct(p) {
   if (!(await checkLogin())) return;
 
   const name = prompt("Product name:", p.Name || "");
   if (name === null) return;
+
   if (!name.trim()) {
     alert("Product name cannot be empty.");
     return;
   }
 
   const category = prompt(
-    "Category (Clothes, Shoes, Bags, Accessories):",
+    "Category: Clothes, Shoes, Bags, or Accessories",
     p.Category || "Clothes"
   );
   if (category === null) return;
 
   const validCategories = ["Clothes", "Shoes", "Bags", "Accessories"];
+
   if (!validCategories.includes(category.trim())) {
-    alert("Choose Clothes, Shoes, Bags, or Accessories.");
+    alert("Enter a valid category.");
     return;
   }
 
@@ -165,48 +269,40 @@ async function editProduct(p) {
   if (priceText === null) return;
 
   const price = Number(priceText);
+
   if (!Number.isFinite(price) || price <= 0) {
     alert("Enter a valid price greater than zero.");
     return;
   }
 
   let imageUrl = p.Image_Url || "";
-  const changeImage = confirm("Do you want to change the product picture?");
 
-  if (changeImage) {
+  if (confirm("Change the product picture?")) {
     const file = await chooseImage();
+    if (!file) return;
 
-    if (file === null) return;
-
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        alert("Please choose a valid image.");
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image must be under 5 MB.");
-        return;
-      }
-
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const imagePath = Date.now() + "_" + safeName;
-
-      const { error: uploadError } = await db.storage
-        .from("product-images")
-        .upload(imagePath, file);
-
-      if (uploadError) {
-        alert("Image upload failed: " + uploadError.message);
-        return;
-      }
-
-      const { data: imageData } = db.storage
-        .from("product-images")
-        .getPublicUrl(imagePath);
-
-      imageUrl = imageData.publicUrl;
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      alert("Choose an image under 5 MB.");
+      return;
     }
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const imagePath = Date.now() + "_" + safeName;
+
+    const { error: uploadError } = await db.storage
+      .from("product-images")
+      .upload(imagePath, file);
+
+    if (uploadError) {
+      alert("Image upload failed: " + uploadError.message);
+      return;
+    }
+
+    const { data: imageData } = db.storage
+      .from("product-images")
+      .getPublicUrl(imagePath);
+
+    imageUrl = imageData.publicUrl;
   }
 
   const { error } = await db
@@ -234,11 +330,12 @@ function chooseImage() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-
     input.onchange = () => resolve(input.files[0] || null);
     input.click();
   });
 }
+
+/* ADD PRODUCT */
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
@@ -300,13 +397,20 @@ form.addEventListener("submit", async event => {
   loadProducts();
 });
 
+/* LOG OUT */
+
 document.getElementById("logout").addEventListener("click", async () => {
   await db.auth.signOut();
   location.href = "admin.html";
 });
 
+/* START */
+
 (async () => {
-  if (await checkLogin()) loadProducts();
+  if (await checkLogin()) {
+    loadProducts();
+    loadOrders();
+  }
 })();
 </script></body>
 </html>
