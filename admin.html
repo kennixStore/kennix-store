@@ -1,1 +1,169 @@
 
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KENNIX Admin</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #ffffff, #eee7ff);
+  color: #252044;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px 24px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(55, 30, 110, 0.12);
+}
+
+.logo {
+  margin-bottom: 8px;
+  color: #6d28d9;
+  font-size: 32px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 3px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 22px;
+}
+
+.subtitle {
+  margin-bottom: 26px;
+  color: #716b83;
+  text-align: center;
+  font-size: 14px;
+}
+
+label {
+  display: block;
+  margin: 16px 0 7px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #d8d1e8;
+  border-radius: 9px;
+  font-size: 16px;
+}
+
+button {
+  width: 100%;
+  margin-top: 22px;
+  padding: 14px;
+  border: 0;
+  border-radius: 9px;
+  background: #6d28d9;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+}
+
+#message {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.back {
+  display: block;
+  margin-top: 20px;
+  color: #6d28d9;
+  text-align: center;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+  </style>
+</head>
+<body>
+  <main class="login-box">
+    <div class="logo">KENNIX</div>
+    <h1>Admin Dashboard</h1>
+    <p class="subtitle">Sign in to manage your store.</p><form id="login-form">
+  <label for="email">Admin email</label>
+  <input
+    id="email"
+    type="email"
+    autocomplete="username"
+    placeholder="Your admin email"
+    required
+  >
+
+  <label for="password">Password</label>
+  <input
+    id="password"
+    type="password"
+    autocomplete="current-password"
+    placeholder="Your password"
+    required
+  >
+
+  <button id="login-button" type="submit">Sign In</button>
+  <p id="message" role="status"></p>
+</form>
+
+<a class="back" href="index.html">← Back to KENNIX Store</a>
+
+  </main>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  <script>
+    const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
+
+    const db = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const form = document.getElementById("login-form");
+    const message = document.getElementById("message");
+    const button = document.getElementById("login-button");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      button.disabled = true;
+      message.textContent = "Signing in...";
+
+      const { data, error } = await db.auth.signInWithPassword({
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value
+      });
+
+      button.disabled = false;
+
+      if (error) {
+        message.textContent = "Sign-in failed. Check your email and password.";
+        return;
+      }
+
+      message.textContent = "Signed in successfully. Preparing dashboard...";
+
+      window.location.href = "admin-dashboard.html";
+    });
+  </script></body>
+</html>
