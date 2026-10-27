@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101014">
+  <title>KENNIX — Your World. Your Style. Your Choice.</title>
+  <meta name="description" content="Discover clothing, shoes, bags, caps and accessories at KENNIX.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="announcement">NEW SEASON, NEW ENERGY <span>✦</span> FREE DELIVERY PROMO COMING SOON</div>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="KENNIX home">KENNIX<span>®</span></a>
+    <nav class="desktop-nav">
+      <a href="#shop">Shop</a><a href="#collections">Collections</a><a href="#story">Our story</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn search-toggle" aria-label="Search products">⌕</button>
+      <button class="cart-button" id="open-cart">Bag <span id="cart-count">0</span></button>
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="story">
+      <div class="hero-glow"></div>
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span> STYLE WITHOUT A BOX</p>
+        <h1>Wear your<br><em>next chapter.</em></h1>
+        <p class="hero-text">Everyday essentials. Statement pieces. Accessories that finish the story. Find your own kind of different.</p>
+        <a class="primary-btn" href="#shop">EXPLORE THE DROP <span>↗</span></a>
+        <div class="hero-note"><span>01 / 03</span><div class="hero-line"></div><span>THE NEW STANDARD</span></div>
+      </div>
+      <div class="hero-visual">
+        <div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div>
+        <div class="hero-stamp">KX<br><small>SELECTED GOODS</small></div>
+        <div class="hero-card card-back"><span>FORM</span><b>01</b></div>
+        <div class="hero-card card-front"><span>FUTURE<br>UNIFORM</span><b>V.</b></div>
+        <p class="floating-label">CURATED FOR<br>YOUR EVERYDAY ↗</p>
+      </div>
+      <div class="hero-bottom"><span>INDEPENDENT STYLE STORE</span><span>MADE FOR EVERY VERSION OF YOU ↓</span></div>
+    </section>
+
+    <section class="category-strip" id="collections">
+      <a href="#shop" data-filter="Clothing">CLOTHING <span>↗</span></a>
+      <a href="#shop" data-filter="Shoes">SHOES <span>↗</span></a>
+      <a href="#shop" data-filter="Bags">BAGS <span>↗</span></a>
+      <a href="#shop" data-filter="Accessories">ACCESSORIES <span>↗</span></a>
+    </section>
+
+    <section class="shop-section" id="shop">
+      <div class="section-heading">
+        <div><p class="eyebrow">THE KENNIX EDIT / 001</p><h2>Good things.<br><em>Great energy.</em></h2></div>
+        <p class="section-description">A little bit bold. A lot you.<br>Find the pieces that feel like you.</p>
+      </div>
+      <div class="shop-controls">
+        <div class="filters" id="filters">
+          <button class="filter active" data-filter="All">All items</button>
+          <button class="filter" data-filter="Clothing">Clothing</button>
+          <button class="filter" data-filter="Shoes">Shoes</button>
+          <button class="filter" data-filter="Bags">Bags</button>
+          <button class="filter" data-filter="Accessories">Accessories</button>
+        </div>
+        <label class="sort-label">SORT <select id="sort"><option value="featured">Featured</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label>
+      </div>
+      <div class="product-grid" id="product-grid"></div>
+      <p class="demo-note">DEMO PRODUCTS — replace these items, photos and prices with your real inventory before launch.</p>
+    </section>
+
+    <section class="manifesto">
+      <div class="manifesto-mark">V.</div>
+      <p class="eyebrow">A NOTE FROM KENNIX</p>
+      <h2>Your style.<br><em>Your rules.</em></h2>
+      <p>We believe getting dressed should feel like becoming more of yourself. No rules to follow. No box to fit. Just pieces that help you show up your way.</p>
+      <a href="#shop" class="text-link">FIND YOUR PIECE <span>↗</span></a>
+    </section>
+
+    <section class="newsletter">
+      <div><p class="eyebrow">THE GOOD STUFF, FIRST</p><h2>Be in the <em>know.</em></h2></div>
+      <form id="newsletter-form"><label class="sr-only" for="email">Email address</label><input id="email" type="email" placeholder="Your email address" required><button type="submit">JOIN THE LIST ↗</button></form>
+    </section>
+  </main>
+
+  <footer><a class="brand" href="#">VYRA<span>®</span></a><p>Your World. Your Style. Your Choice.</p><div class="footer-bottom"><span>© 2026 KENNIX</span><span>MADE FOR YOUR EVERY VERSION.</span></div></footer>
+
+  <div class="overlay" id="overlay"></div>
+  <aside class="cart-drawer" id="cart-drawer" aria-label="Shopping bag" aria-hidden="true">
+    <div class="drawer-head"><div><p class="eyebrow">YOUR PICKS</p><h2>Your bag <span id="drawer-count">(0)</span></h2></div><button id="close-cart" class="close-btn" aria-label="Close bag">×</button></div>
+    <div id="cart-items" class="cart-items"><p class="empty-cart">Your bag is waiting for something good.</p></div>
+    <div class="drawer-bottom"><div class="subtotal"><span>Subtotal</span><strong id="subtotal">₦0</strong></div><p>Delivery is calculated at checkout.</p><button id="checkout-btn" class="primary-btn full-width">CONTINUE TO CHECKOUT ↗</button><small class="payment-warning">Checkout is a demo right now. Real online payments must be connected before accepting orders.</small></div>
+  </aside>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
