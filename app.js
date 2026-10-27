@@ -117,17 +117,17 @@ const decrease = document.createElement("button");
 decrease.textContent = "−";
 decrease.style.width = "30%";
 decrease.onclick = () => {
-item.quantity--;
-if (item.quantity <= 0) cart = cart.filter(p => p.id !== item.id);
-renderCart();
+  item.quantity--;
+  if (item.quantity <= 0) cart = cart.filter(p => p.id !== item.id);
+  renderCart();
 };
 
 const increase = document.createElement("button");
 increase.textContent = "+";
 increase.style.width = "30%";
 increase.onclick = () => {
-item.quantity++;
-renderCart();
+  item.quantity++;
+  renderCart();
 };
 
 row.append(name, price, quantity, decrease, increase);
@@ -179,25 +179,9 @@ form.style.cssText = "padding:16px;background:white;border-radius:10px;margin-to
 const heading = document.createElement("h3");
 heading.textContent = "Delivery details";
 
-form.innerHTML = `
-  <label>Full name</label>
-  <input name="customer_name" required maxlength="100" autocomplete="name">
+form.innerHTML = "<label>Full name</label> <input name="customer_name" required maxlength="100" autocomplete="name"> <label>Phone number</label> <input name="customer_phone" required maxlength="30" autocomplete="tel"> <label>Delivery address</label> <textarea name="delivery_address" required maxlength="500" autocomplete="street-address"></textarea> <p id="checkout-total"></p> <button type="submit">PLACE ORDER</button> <p class="small">Payment is not collected online yet. We'll confirm your order before payment.</p>";
 
-  <label>Phone number</label>
-  <input name="customer_phone" required maxlength="30" autocomplete="tel">
-
-  <label>Delivery address</label>
-  <textarea name="delivery_address" required maxlength="500" autocomplete="street-address"></textarea>
-
-  <p id="checkout-total"></p>
-
-  <button type="submit">PLACE ORDER</button>
-
-  <p class="small">
-    Payment is not collected online yet.
-    We'll confirm your order before payment.
-  </p>
-`;
+get("cart-drawer").appendChild(form);
 
 const total = cart.reduce((sum, item) => sum + Number(item.Price) * item.quantity, 0);
 get("checkout-total").textContent = "Order total: " + money(total);
@@ -224,20 +208,18 @@ button.textContent = "PLACING ORDER...";
 
 /*
 
-Each product becomes a separate row in the existing orders table.
-
-The current table stores one product per order row.
-*/
-const orderRows = cart.map(item => ({
-customer_name: customerName,
-customer_phone: customerPhone,
-delivery_address: deliveryAddress,
-product_name: item.Name,
-quantity: item.quantity,
-unit_price: Number(item.Price),
-status: "Pending"
-}));
-
+* Each product becomes a separate row in the existing orders table.
+* The current table stores one product per order row.
+  */
+  const orderRows = cart.map(item => ({
+  customer_name: customerName,
+  customer_phone: customerPhone,
+  delivery_address: deliveryAddress,
+  product_name: item.Name,
+  quantity: item.quantity,
+  unit_price: Number(item.Price),
+  status: "Pending"
+  }));
 
 const { error } = await db.from("orders").insert(orderRows);
 
