@@ -1,63 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KENNIX Admin</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 body{font-family:Arial;background:#f5f3ff;margin:0;padding:20px;color:#222}
 header{background:#5427a8;color:white;padding:20px;border-radius:12px}
 .card{background:white;padding:18px;margin:18px 0;border-radius:12px}
 input,textarea,select,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:7px;border:1px solid #ccc}
-button{background:#5427a8;color:white;border:0;font-weight:bold}
+button{background:#5427a8;color:white;border:0;font-weight:bold;cursor:pointer}
 .product{border-bottom:1px solid #ddd;padding:12px 0}
-img{max-width:100%;height:100px;object-fit:cover}
+img{max-width:100%;height:100px;object-fit:cover;display:block}
+.editBtn{background:#1769aa}
+.deleteBtn{background:#c62828}
 </style>
 </head>
-
-<body>
-<header>
+<body><header>
 <h1>KENNIX Admin</h1>
 <p>Manage your fashion store</p>
 <button id="logout">Log Out</button>
-</header>
-
-<section class="card">
+</header><section class="card">
 <h2>Add New Product</h2>
-
 <form id="productForm">
-<input id="name" placeholder="Product name" required>
-
-<select id="category" required>
+<input id="name" placeholder="Product name" required><select id="category" required>
 <option value="">Choose category</option>
 <option>Clothes</option>
 <option>Shoes</option>
 <option>Bags</option>
 <option>Accessories</option>
-</select>
-
-<textarea id="description" placeholder="Product description" required></textarea>
-
-<input id="price" type="number" min="1" placeholder="Price in naira" required>
-
+</select><textarea id="description" placeholder="Product description" required></textarea><input id="price" type="number" min="1" placeholder="Price in naira" required>
 <label>Product picture</label>
 <input id="image" type="file" accept="image/*" required>
-
 <button type="submit">Upload Product</button>
 <p id="message"></p>
 </form>
-</section>
-
-<section class="card">
+</section><section class="card">
 <h2>Your Products</h2>
 <div id="products">Loading products...</div>
-</section>
-
-<script>
-// KEEP YOUR EXISTING VALUES HERE
+</section><script>
 const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
 
@@ -70,9 +51,9 @@ const form = document.getElementById("productForm");
 const message = document.getElementById("message");
 
 async function checkLogin() {
-  const { data } = await db.auth.getSession();
+  const { data, error } = await db.auth.getSession();
 
-  if (!data.session) {
+  if (error || !data.session) {
     location.href = "admin.html";
     return false;
   }
@@ -81,6 +62,7 @@ async function checkLogin() {
 
 async function loadProducts() {
   const box = document.getElementById("products");
+  box.textContent = "Loading products...";
 
   const { data, error } = await db
     .from("products")
@@ -103,50 +85,162 @@ async function loadProducts() {
     const item = document.createElement("div");
     item.className = "product";
 
+    if (p.Image_Url) {
+      const img = document.createElement("img");
+      img.src = p.Image_Url;
+      img.alt = p.Name || "Product";
+      item.appendChild(img);
+    }
+
     const title = document.createElement("h3");
     title.textContent = p.Name || "Unnamed product";
 
     const category = document.createElement("p");
     category.textContent = p.Category || "";
 
+    const description = document.createElement("p");
+    description.textContent = p.Description || "";
+
     const price = document.createElement("p");
     price.textContent = "₦" + Number(p.Price || 0).toLocaleString("en-NG");
 
-    item.append(title, category, price);
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit Product ✏️";
+    editBtn.className = "editBtn";
+
+    editBtn.onclick = () => editProduct(p);
+
     const deleteBtn = document.createElement("button");
-deleteBtn.textContent = "Delete Product 🗑️";
+    deleteBtn.textContent = "Delete Product 🗑️";
+    deleteBtn.className = "deleteBtn";
 
-deleteBtn.onclick = async () => {
-  if (!confirm(`Delete "${p.Name}" permanently?`)) return;
+    deleteBtn.onclick = async () => {
+      if (!confirm(`Delete "${p.Name}" permanently?`)) return;
 
-  const { error } = await db
-    .from("products")
-    .delete()
-    .eq("id", p.id);
+      const { error } = await db
+        .from("products")
+        .delete()
+        .eq("id", p.id);
 
-  if (error) {
-    alert("Delete failed: " + error.message);
-    return;
-  }
+      if (error) {
+        alert("Delete failed: " + error.message);
+        return;
+      }
 
-  alert("Product deleted!");
-  loadProducts();
-};
+      alert("Product deleted!");
+      loadProducts();
+    };
 
-item.appendChild(deleteBtn);
-
-    if (p.Image_Url) {
-      const img = document.createElement("img");
-      img.src = p.Image_Url;
-      img.alt = p.Name || "Product";
-      item.prepend(img);
-    }
-
+    item.append(title, category, description, price, editBtn, deleteBtn);
     box.appendChild(item);
   });
 }
 
-form.addEventListener("submit", async (event) => {
+async function editProduct(p) {
+  if (!(await checkLogin())) return;
+
+  const name = prompt("Product name:", p.Name || "");
+  if (name === null) return;
+  if (!name.trim()) {
+    alert("Product name cannot be empty.");
+    return;
+  }
+
+  const category = prompt(
+    "Category (Clothes, Shoes, Bags, Accessories):",
+    p.Category || "Clothes"
+  );
+  if (category === null) return;
+
+  const validCategories = ["Clothes", "Shoes", "Bags", "Accessories"];
+  if (!validCategories.includes(category.trim())) {
+    alert("Choose Clothes, Shoes, Bags, or Accessories.");
+    return;
+  }
+
+  const description = prompt("Product description:", p.Description || "");
+  if (description === null) return;
+
+  const priceText = prompt("Price in naira:", String(p.Price || ""));
+  if (priceText === null) return;
+
+  const price = Number(priceText);
+  if (!Number.isFinite(price) || price <= 0) {
+    alert("Enter a valid price greater than zero.");
+    return;
+  }
+
+  let imageUrl = p.Image_Url || "";
+  const changeImage = confirm("Do you want to change the product picture?");
+
+  if (changeImage) {
+    const file = await chooseImage();
+
+    if (file === null) return;
+
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        alert("Please choose a valid image.");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image must be under 5 MB.");
+        return;
+      }
+
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const imagePath = Date.now() + "_" + safeName;
+
+      const { error: uploadError } = await db.storage
+        .from("product-images")
+        .upload(imagePath, file);
+
+      if (uploadError) {
+        alert("Image upload failed: " + uploadError.message);
+        return;
+      }
+
+      const { data: imageData } = db.storage
+        .from("product-images")
+        .getPublicUrl(imagePath);
+
+      imageUrl = imageData.publicUrl;
+    }
+  }
+
+  const { error } = await db
+    .from("products")
+    .update({
+      Name: name.trim(),
+      Category: category.trim(),
+      Description: description.trim(),
+      Price: price,
+      Image_Url: imageUrl
+    })
+    .eq("id", p.id);
+
+  if (error) {
+    alert("Update failed: " + error.message);
+    return;
+  }
+
+  alert("Product updated successfully!");
+  loadProducts();
+}
+
+function chooseImage() {
+  return new Promise(resolve => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
+    input.onchange = () => resolve(input.files[0] || null);
+    input.click();
+  });
+}
+
+form.addEventListener("submit", async event => {
   event.preventDefault();
 
   if (!(await checkLogin())) return;
@@ -214,6 +308,5 @@ document.getElementById("logout").addEventListener("click", async () => {
 (async () => {
   if (await checkLogin()) loadProducts();
 })();
-</script>
-</body>
+</script></body>
 </html>
