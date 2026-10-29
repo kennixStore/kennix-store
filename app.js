@@ -67,10 +67,18 @@ function renderProducts() {
   container.replaceChildren();
 
   let visible = products.filter(product => {
-    const matchesCategory =
-      activeCategory === "All" ||
-      String(product.Category || "").toLowerCase() ===
-        activeCategory.toLowerCase();
+    const categoryAliases = {
+  "clothes": "clothing",
+  "clothing": "clothing"
+};
+
+const productCategory = String(product.Category || "").trim().toLowerCase();
+const selectedCategory = String(activeCategory || "All").trim().toLowerCase();
+
+const matchesCategory =
+  selectedCategory === "all" ||
+  (categoryAliases[productCategory] || productCategory) ===
+  (categoryAliases[selectedCategory] || selectedCategory);
 
     const searchableText = [
       product.Name,
