@@ -421,13 +421,52 @@ function setupCheckout() {
 
 function setupNewsletter() {
   const form = get("newsletter-form");
+  const emailInput = get("email");
 
-  if (form) {
-    form.addEventListener("submit", event => {
-      event.preventDefault();
-      alert("Newsletter registration is not connected yet.");
-    });
-  }
+  if (!form || !emailInput) return;
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const email = emailInput.value.trim().toLowerCase();
+    if (!email) {
+      alert("Please enter your email address.");
+      return;
+    }
+
+    const button = form.querySelector('button[type="submit"]');
+    if (button) {
+      button.disabled = true;
+      button.textContent = "JOINING...";
+    }
+
+    try {
+      const { error } = await db
+        .from("newsletter_subscribers")
+        .insert([{ email }]);
+
+      if (error) {
+        if (error.code === "23505") {
+          alert("This email has already joined the KENNIX list.");
+        } else {
+          console.error("Newsletter error:", error);
+          alert("Unable to join right now. Please try again.");
+        }
+        return;
+      }
+
+      alert("Welcome to the KENNIX list!");
+      form.reset();
+    } catch (error) {
+      console.error("Newsletter error:", error);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "JOIN THE LIST ↗";
+      }
+    }
+  });
 }
 
 // Start the website
