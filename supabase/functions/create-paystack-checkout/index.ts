@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     }
 
     const customerEmail = customer.email.trim().toLowerCase();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(customerEmail)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
       return reply({ error: "Please enter a valid email address." }, 400);
     }
 
@@ -169,6 +169,7 @@ Deno.serve(async (req) => {
         total_amount: total,
         status: "pending",
         order_reference: orderReference,
+        payment_reference: orderReference,
         payment_status: "pending",
         payment_provider: "paystack",
       })
@@ -232,10 +233,6 @@ Deno.serve(async (req) => {
       return reply({ error: "Payment could not be started. Please try again." }, 502);
     }
 
-    await supabase
-      .from("orders")
-      .update({ payment_reference: orderReference })
-      .eq("id", order.id);
 
     return reply({
       success: true,
