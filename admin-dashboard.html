@@ -52,11 +52,16 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <h2>Variant Stock Inventory</h2>
 <form id="variantForm">
 <label for="variantProduct">Product</label><select id="variantProduct" required><option value="">Loading products...</option></select>
-<label for="variantColor">Colour</label><input id="variantColor" placeholder="e.g. Black" required>
-<label for="variantSize">Size</label><input id="variantSize" placeholder="e.g. Medium or One Size" required>
-<label for="variantStock">Stock quantity</label><input id="variantStock" type="number" min="0" step="1" placeholder="Available quantity" required>
-<label for="variantPrice">Variant price (optional)</label><input id="variantPrice" type="number" min="0" step="1" placeholder="Leave blank to use product price">
-<button id="saveVariant" type="submit">Save Stock Option</button>
+<div id="variantRows">
+<div class="variant-entry inventory-row">
+<label>Colour</label><input class="variant-color" placeholder="e.g. Black" required>
+<label>Size</label><input class="variant-size" placeholder="e.g. Medium or One Size" required>
+<label>Stock quantity</label><input class="variant-stock" type="number" min="0" step="1" placeholder="Available quantity" required>
+<label>Variant price (optional)</label><input class="variant-price" type="number" min="0" step="1" placeholder="Leave blank to use product price">
+</div>
+</div>
+<button id="addVariantRow" type="button" class="editBtn">+ Add Another Colour / Size</button>
+<button id="saveVariant" type="submit">Save All Stock Options</button>
 <p id="variantMessage" class="small"></p>
 </form>
 <h3>Existing Stock Options</h3><div id="variantList">Loading inventory...</div>
@@ -463,17 +468,42 @@ async function loadVariantInventory(){
     row.append(title,meta,edit,toggle);variantList.append(row);
   });
 }
+function addVariantEntry(){
+  const entry=document.createElement("div");entry.className="variant-entry inventory-row";
+  entry.innerHTML='<label>Colour</label><input class="variant-color" placeholder="e.g. Black" required><label>Size</label><input class="variant-size" placeholder="e.g. Medium or One Size" required><label>Stock quantity</label><input class="variant-stock" type="number" min="0" step="1" placeholder="Available quantity" required><label>Variant price (optional)</label><input class="variant-price" type="number" min="0" step="1" placeholder="Leave blank to use product price"><button type="button" class="deleteBtn remove-variant">Remove this option</button>';
+  entry.querySelector(".remove-variant").onclick=()=>entry.remove();
+  document.getElementById("variantRows").append(entry);
+}
+document.getElementById("addVariantRow").addEventListener("click",addVariantEntry);
 variantForm.addEventListener("submit",async event=>{
   event.preventDefault();if(!(await checkLogin()))return;
-  const product_id=Number(variantProduct.value),color=document.getElementById("variantColor").value.trim(),size=document.getElementById("variantSize").value.trim(),stock_quantity=Number(document.getElementById("variantStock").value),priceText=document.getElementById("variantPrice").value.trim();
-  if(!product_id||!color||!size||!Number.isInteger(stock_quantity)||stock_quantity<0){variantMessage.textContent="Choose a product and enter a colour, size and valid whole-number stock.";return}
-  let price=null;if(priceText!==""){price=Number(priceText);if(!Number.isFinite(price)||price<0){variantMessage.textContent="Enter a valid variant price.";return}}
-  const save=document.getElementById("saveVariant");save.disabled=true;variantMessage.textContent="Saving stock option...";
-  const {error}=await db.from("product_variants").upsert({product_id,color,size,stock_quantity,price,is_active:true},{onConflict:"product_id,color,size"});
+  const product_id=Number(variantProduct.value);
+  if(!product_id){variantMessage.textContent="Choose a product first.";return}
+  const entries=[...document.querySelectorAll(".variant-entry")];
+  const rows=[];const seen=new Set();
+  for(const entry of entries){
+    const color=entry.querySelector(".variant-color").value.trim();
+    const size=entry.querySelector(".variant-size").value.trim();
+    const stockText=entry.querySelector(".variant-stock").value.trim();
+    const priceText=entry.querySelector(".variant-price").value.trim();
+    const stock_quantity=Number(stockText);
+    if(!color||!size||stockText===""||!Number.isInteger(stock_quantity)||stock_quantity<0){variantMessage.textContent="Complete every colour, size and valid stock quantity.";return}
+    const key=color.toLowerCase()+"::"+size.toLowerCase();
+    if(seen.has(key)){variantMessage.textContent="You have entered the same colour and size more than once.";return}
+    seen.add(key);
+    let price=null;
+    if(priceText!==""){price=Number(priceText);if(!Number.isFinite(price)||price<0){variantMessage.textContent="Enter a valid price or leave it blank.";return}}
+    rows.push({product_id,color,size,stock_quantity,price,is_active:true});
+  }
+  const save=document.getElementById("saveVariant");save.disabled=true;variantMessage.textContent="Saving "+rows.length+" stock option(s)...";
+  const {error}=await db.from("product_variants").upsert(rows,{onConflict:"product_id,color,size"});
   save.disabled=false;
   if(error){variantMessage.textContent="Could not save. "+error.message;return}
-  variantMessage.textContent="Stock option saved.";
-  document.getElementById("variantColor").value="";document.getElementById("variantSize").value="";document.getElementById("variantStock").value="";document.getElementById("variantPrice").value="";
+  variantMessage.textContent=rows.length+" stock option(s) saved successfully.";
+  document.getElementById("variantRows").replaceChildren();
+  const first=document.createElement("div");first.className="variant-entry inventory-row";
+  first.innerHTML='<label>Colour</label><input class="variant-color" placeholder="e.g. Black" required><label>Size</label><input class="variant-size" placeholder="e.g. Medium or One Size" required><label>Stock quantity</label><input class="variant-stock" type="number" min="0" step="1" placeholder="Available quantity" required><label>Variant price (optional)</label><input class="variant-price" type="number" min="0" step="1" placeholder="Leave blank to use product price">';
+  document.getElementById("variantRows").append(first);
   await loadVariantInventory();
 });
 
