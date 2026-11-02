@@ -9,10 +9,13 @@ body{font-family:Arial;background:#f5f3ff;margin:0;padding:16px;color:#222}
 header{background:#5427a8;color:white;padding:20px;border-radius:12px}
 .card{background:white;padding:16px;margin:18px 0;border-radius:12px}
 input,textarea,select,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:7px;border:1px solid #ccc}
-button{background:#5427a8;color:white;border:0;font-weight:bold;cursor:pointer}
+button{background:#022c22;color:#d4af37;border:0;font-weight:bold;cursor:pointer}
 .product,.order{border-bottom:1px solid #ddd;padding:14px 0;overflow-wrap:anywhere}
 img{max-width:100%;height:100px;object-fit:cover;display:block}
 .editBtn{background:#1769aa}
+.inventory-row{border-bottom:1px solid #e4e9e3;padding:12px 0;display:grid;gap:6px}
+.inventory-row button{margin:3px 0}
+.inventory-meta{font-size:13px;color:#56645b}
 .deleteBtn{background:#c62828}
 .status{background:#f5f3ff}
 .small{font-size:14px;color:#555}
@@ -44,7 +47,21 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 </section><section class="card">
 <h2>🛍️ Your Products</h2>
 <div id="products">Loading products...</div>
-</section><script>
+</section>
+<section class="card" id="variant-inventory">
+<h2>Variant Stock Inventory</h2>
+<form id="variantForm">
+<label for="variantProduct">Product</label><select id="variantProduct" required><option value="">Loading products...</option></select>
+<label for="variantColor">Colour</label><input id="variantColor" placeholder="e.g. Black" required>
+<label for="variantSize">Size</label><input id="variantSize" placeholder="e.g. Medium or One Size" required>
+<label for="variantStock">Stock quantity</label><input id="variantStock" type="number" min="0" step="1" placeholder="Available quantity" required>
+<label for="variantPrice">Variant price (optional)</label><input id="variantPrice" type="number" min="0" step="1" placeholder="Leave blank to use product price">
+<button id="saveVariant" type="submit">Save Stock Option</button>
+<p id="variantMessage" class="small"></p>
+</form>
+<h3>Existing Stock Options</h3><div id="variantList">Loading inventory...</div>
+</section>
+<script>
 const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
 
@@ -404,12 +421,70 @@ document.getElementById("logout").addEventListener("click", async () => {
   location.href = "admin.html";
 });
 
+
+/* VARIANT STOCK INVENTORY */
+const variantForm=document.getElementById("variantForm");
+const variantMessage=document.getElementById("variantMessage");
+const variantProduct=document.getElementById("variantProduct");
+const variantList=document.getElementById("variantList");
+let adminProducts=[];
+
+async function loadVariantProducts(){
+  const {data,error}=await db.from("products").select("id,Name,Price").order("Name");
+  if(error){variantProduct.innerHTML='<option value="">Could not load products</option>';variantMessage.textContent=error.message;return}
+  adminProducts=data||[];
+  variantProduct.replaceChildren();
+  const first=document.createElement("option");first.value="";first.textContent="Choose a product";variantProduct.append(first);
+  adminProducts.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.Name||("Product #"+p.id);variantProduct.append(o)});
+}
+async function loadVariantInventory(){
+  variantList.textContent="Loading inventory...";
+  const {data,error}=await db.from("product_variants").select("id,product_id,color,size,stock_quantity,price,is_active").order("product_id").order("color").order("size");
+  if(error){variantList.textContent="Could not load stock options: "+error.message;return}
+  variantList.replaceChildren();
+  if(!data?.length){variantList.textContent="No stock options added yet.";return}
+  data.forEach(v=>{
+    const product=adminProducts.find(p=>String(p.id)===String(v.product_id));
+    const row=document.createElement("div");row.className="inventory-row";
+    const title=document.createElement("strong");title.textContent=(product?.Name||("Product #"+v.product_id))+" — "+v.color+" / "+v.size;
+    const meta=document.createElement("div");meta.className="inventory-meta";meta.textContent="Stock: "+v.stock_quantity+" · Price: "+(v.price==null?"Use product price":"₦"+Number(v.price).toLocaleString("en-NG"))+" · "+(v.is_active?"Active":"Inactive");
+    const edit=document.createElement("button");edit.className="editBtn";edit.textContent="Edit stock option";
+    edit.onclick=async()=>{
+      const stockText=prompt("New stock quantity:",String(v.stock_quantity));if(stockText===null)return;
+      if(!/^\d+$/.test(stockText.trim())){alert("Enter a whole number of 0 or more.");return}
+      const priceText=prompt("Variant price in naira (leave blank to use product price):",v.price==null?"":String(v.price));if(priceText===null)return;
+      let price=null;if(priceText.trim()!==""){price=Number(priceText);if(!Number.isFinite(price)||price<0){alert("Enter a valid price.");return}}
+      const {error:updateError}=await db.from("product_variants").update({stock_quantity:Number(stockText),price,is_active:true}).eq("id",v.id);
+      if(updateError){alert("Could not update stock: "+updateError.message);return}
+      loadVariantInventory();
+    };
+    const toggle=document.createElement("button");toggle.className="deleteBtn";toggle.textContent=v.is_active?"Deactivate option":"Activate option";
+    toggle.onclick=async()=>{const {error:toggleError}=await db.from("product_variants").update({is_active:!v.is_active}).eq("id",v.id);if(toggleError){alert("Could not change option: "+toggleError.message);return}loadVariantInventory()};
+    row.append(title,meta,edit,toggle);variantList.append(row);
+  });
+}
+variantForm.addEventListener("submit",async event=>{
+  event.preventDefault();if(!(await checkLogin()))return;
+  const product_id=Number(variantProduct.value),color=document.getElementById("variantColor").value.trim(),size=document.getElementById("variantSize").value.trim(),stock_quantity=Number(document.getElementById("variantStock").value),priceText=document.getElementById("variantPrice").value.trim();
+  if(!product_id||!color||!size||!Number.isInteger(stock_quantity)||stock_quantity<0){variantMessage.textContent="Choose a product and enter a colour, size and valid whole-number stock.";return}
+  let price=null;if(priceText!==""){price=Number(priceText);if(!Number.isFinite(price)||price<0){variantMessage.textContent="Enter a valid variant price.";return}}
+  const save=document.getElementById("saveVariant");save.disabled=true;variantMessage.textContent="Saving stock option...";
+  const {error}=await db.from("product_variants").upsert({product_id,color,size,stock_quantity,price,is_active:true},{onConflict:"product_id,color,size"});
+  save.disabled=false;
+  if(error){variantMessage.textContent="Could not save. "+error.message;return}
+  variantMessage.textContent="Stock option saved.";
+  document.getElementById("variantColor").value="";document.getElementById("variantSize").value="";document.getElementById("variantStock").value="";document.getElementById("variantPrice").value="";
+  await loadVariantInventory();
+});
+
 /* START */
 
 (async () => {
   if (await checkLogin()) {
     loadProducts();
     loadOrders();
+    await loadVariantProducts();
+    await loadVariantInventory();
   }
 })();
 </script></body>
