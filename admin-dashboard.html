@@ -12,7 +12,10 @@ input,textarea,select,button{box-sizing:border-box;width:100%;padding:12px;margi
 button{background:#022c22;color:#d4af37;border:0;font-weight:bold;cursor:pointer}
 .product,.order{border-bottom:1px solid #ddd;padding:14px 0;overflow-wrap:anywhere}
 img{max-width:100%;height:100px;object-fit:cover;display:block}
-.editBtn{background:#1769aa}\n.inventory-row{border-bottom:1px solid #e4e9e3;padding:12px 0;display:grid;gap:6px}\n.inventory-row button{margin:3px 0}\n.inventory-meta{font-size:13px;color:#56645b}
+.editBtn{background:#1769aa}
+.inventory-row{border-bottom:1px solid #e4e9e3;padding:12px 0;display:grid;gap:6px}
+.inventory-row button{margin:3px 0}
+.inventory-meta{font-size:13px;color:#56645b}
 .deleteBtn{background:#c62828}
 .status{background:#f5f3ff}
 .small{font-size:14px;color:#555}
@@ -44,7 +47,21 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 </section><section class="card">
 <h2>🛍️ Your Products</h2>
 <div id="products">Loading products...</div>
-</section><script>
+</section>
+<section class="card" id="variant-inventory">
+<h2>Variant Stock Inventory</h2>
+<form id="variantForm">
+<label for="variantProduct">Product</label><select id="variantProduct" required><option value="">Loading products...</option></select>
+<label for="variantColor">Colour</label><input id="variantColor" placeholder="e.g. Black" required>
+<label for="variantSize">Size</label><input id="variantSize" placeholder="e.g. Medium or One Size" required>
+<label for="variantStock">Stock quantity</label><input id="variantStock" type="number" min="0" step="1" placeholder="Available quantity" required>
+<label for="variantPrice">Variant price (optional)</label><input id="variantPrice" type="number" min="0" step="1" placeholder="Leave blank to use product price">
+<button id="saveVariant" type="submit">Save Stock Option</button>
+<p id="variantMessage" class="small"></p>
+</form>
+<h3>Existing Stock Options</h3><div id="variantList">Loading inventory...</div>
+</section>
+<script>
 const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
 
@@ -99,12 +116,18 @@ async function loadOrders() {
     const details = document.createElement("p");
     details.textContent =
       "Customer: " + order.customer_name +
-      "\nPhone: " + order.customer_phone +
-      "\nAddress: " + order.delivery_address +
-      "\nProduct: " + order.product_name +
-      "\nQuantity: " + order.quantity +
-      "\nUnit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
-      "\nTotal: ₦" + Number(order.total_amount).toLocaleString("en-NG");
+      "
+Phone: " + order.customer_phone +
+      "
+Address: " + order.delivery_address +
+      "
+Product: " + order.product_name +
+      "
+Quantity: " + order.quantity +
+      "
+Unit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
+      "
+Total: ₦" + Number(order.total_amount).toLocaleString("en-NG");
 
     details.style.whiteSpace = "pre-line";
 
@@ -459,12 +482,15 @@ variantForm.addEventListener("submit",async event=>{
   document.getElementById("variantColor").value="";document.getElementById("variantSize").value="";document.getElementById("variantStock").value="";document.getElementById("variantPrice").value="";
   await loadVariantInventory();
 });
-\n/* START */
+
+/* START */
 
 (async () => {
   if (await checkLogin()) {
     loadProducts();
     loadOrders();
+    await loadVariantProducts();
+    await loadVariantInventory();
   }
 })();
 </script></body>
