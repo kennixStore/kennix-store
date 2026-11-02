@@ -37,12 +37,17 @@ Deno.serve(async (req) => {
     const items = body.items;
 
     if (
-      !customer?.name?.trim() ||
-      !customer?.phone?.trim() ||
-      !customer?.email?.trim() ||
-      !customer?.address?.trim()
+      typeof customer?.name !== "string" || !customer.name.trim() ||
+      typeof customer?.phone !== "string" || !customer.phone.trim() ||
+      typeof customer?.email !== "string" || !customer.email.trim() ||
+      typeof customer?.address !== "string" || !customer.address.trim()
     ) {
       return reply({ error: "Please provide your name, phone, email and delivery address." }, 400);
+    }
+
+    const customerEmail = customer.email.trim().toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(customerEmail)) {
+      return reply({ error: "Please enter a valid email address." }, 400);
     }
 
     if (
@@ -83,6 +88,20 @@ Deno.serve(async (req) => {
 
       let price = Number(product["Price"]);
       let variantLabel = null;
+
+      if (variantId === null) {
+        const { data: availableVariants, error: variantsError } = await supabase
+          .from("product_variants")
+          .select("id")
+          .eq("product_id", productId)
+          .eq("is_active", true)
+          .limit(1);
+
+        if (variantsError) throw variantsError;
+        if (availableVariants && availableVariants.length > 0) {
+          return reply({ error: `Please select an option for ${product["Name"]}.` }, 400);
+        }
+      }
 
       if (variantId !== null) {
         const { data: variant, error: variantError } = await supabase
@@ -136,14 +155,13 @@ Deno.serve(async (req) => {
     }
 
     const orderReference = `KNX-${crypto.randomUUID()}`;
-    const firstItem = cleanItems[0];
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
         customer_name: customer.name.trim(),
         customer_phone: customer.phone.trim(),
-        customer_email: customer.email.trim(),
+        customer_email: customerEmail,
         delivery_address: customer.address.trim(),
         product_name: cleanItems.map((i) => i.product_name).join(", "),
         quantity: totalQuantity,
@@ -202,10 +220,14 @@ Deno.serve(async (req) => {
 
     if (!paystackResponse.ok || !payment.status || !payment.data?.authorization_url) {
       console.error("Paystack initialization failed:", payment);
-      await supabase
+      const { error: failureUpdateError } = await supabase
         .from("orders")
         .update({ payment_status: "failed" })
         .eq("id", order.id);
+
+      if (failureUpdateError) {
+        console.error("Could not mark failed checkout:", failureUpdateError);
+      }
 
       return reply({ error: "Payment could not be started. Please try again." }, 502);
     }
