@@ -24,4 +24,44 @@ function closeProduct(){get("product-modal")?.classList.remove("open");get("prod
 function setupCarousel(){const slides=[...document.querySelectorAll(".promo-slide")],dots=[...document.querySelectorAll("#promo-dots button")];if(!slides.length)return;const show=i=>{promoIndex=(i+slides.length)%slides.length;slides.forEach((s,n)=>s.classList.toggle("active",n===promoIndex));dots.forEach((d,n)=>d.classList.toggle("active",n===promoIndex))};const restart=()=>{clearInterval(promoTimer);promoTimer=setInterval(()=>show(promoIndex+1),3000)};get("promo-next").onclick=()=>{show(promoIndex+1);restart()};get("promo-prev").onclick=()=>{show(promoIndex-1);restart()};dots.forEach((d,i)=>d.onclick=()=>{show(i);restart()});let x=0;get("promo-slider").addEventListener("touchstart",e=>x=e.changedTouches[0].clientX,{passive:true});get("promo-slider").addEventListener("touchend",e=>{let dx=e.changedTouches[0].clientX-x;if(Math.abs(dx)>45){show(promoIndex+(dx<0?1:-1));restart()}},{passive:true});show(0);restart()}
 function setupMenu(){const b=get("menu-toggle"),nav=get("main-nav");b?.addEventListener("click",()=>{nav.classList.toggle("open");b.setAttribute("aria-expanded",String(nav.classList.contains("open")))});nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>nav.classList.remove("open")))}
 function setupNewsletter(){const form=get("newsletter-form");form?.addEventListener("submit",async e=>{e.preventDefault();const email=get("email").value.trim().toLowerCase(),button=form.querySelector("button");button.disabled=true;button.textContent="JOINING...";try{const {error}=await db.from("newsletter_subscribers").insert([{email}]);if(error){alert(error.code==="23505"?"This email has already joined the KENNIX list.":"Unable to join right now. Please try again.");return}alert("Welcome to the KENNIX list!");form.reset()}catch(err){console.error(err);alert("Something went wrong. Please try again.")}finally{button.disabled=false;button.textContent="JOIN THE LIST ↗"}})}
-function init(){get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>alert(cart.length?"KENNIX checkout is not connected yet. No order or payment has been submitted.":"Your bag is empty.");setupSearch();setupFilters();setupSorting();setupCarousel();setupMenu();setupNewsletter();renderCart();loadProducts()}init();
+
+function openCheckoutForm(){
+ const panel=get("checkout-panel"),checkoutButton=get("checkout-btn");
+ if(!panel)return;
+ panel.hidden=false;
+ checkoutButton.hidden=true;
+ panel.innerHTML=`<form id="kennix-checkout-form" class="checkout-form">
+ <h3>Delivery details</h3>
+ <label for="checkout-name">Full name</label><input id="checkout-name" name="name" autocomplete="name" required>
+ <label for="checkout-phone">Phone number</label><input id="checkout-phone" name="phone" type="tel" autocomplete="tel" required>
+ <label for="checkout-email">Email address</label><input id="checkout-email" name="email" type="email" autocomplete="email" required>
+ <label for="checkout-address">Delivery address</label><textarea id="checkout-address" name="address" autocomplete="street-address" rows="3" required></textarea>
+ <button id="paystack-submit" class="primary-btn" type="submit">CONTINUE TO PAYSTACK ↗</button>
+ <button id="checkout-back" class="checkout-back" type="button">BACK TO BAG</button>
+ <p class="checkout-error" id="checkout-error" role="alert"></p>
+ </form>`;
+ panel.querySelector("#checkout-back").addEventListener("click",()=>{panel.hidden=true;panel.replaceChildren();checkoutButton.hidden=false});
+ panel.querySelector("#kennix-checkout-form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const form=e.currentTarget,submit=panel.querySelector("#paystack-submit"),errorBox=panel.querySelector("#checkout-error");
+  submit.disabled=true;submit.textContent="CONNECTING TO PAYSTACK...";errorBox.textContent="";
+  const customer={
+   name:form.elements.name.value.trim(),
+   phone:form.elements.phone.value.trim(),
+   email:form.elements.email.value.trim(),
+   address:form.elements.address.value.trim()
+  };
+  const items=cart.map(item=>({product_id:item.id,variant_id:item.variantId,quantity:item.quantity}));
+  try{
+   const {data,error}=await db.functions.invoke("create-paystack-checkout",{body:{customer,items}});
+   if(error)throw error;
+   if(!data?.success||!data.authorization_url)throw new Error(data?.error||"Payment could not be started. Please try again.");
+   window.location.assign(data.authorization_url);
+  }catch(err){
+   console.error("KENNIX checkout failed:",err);
+   errorBox.textContent=err?.context?.error||err?.message||"Unable to start payment. Please try again.";
+   submit.disabled=false;submit.textContent="CONTINUE TO PAYSTACK ↗";
+  }
+ });
+}
+\nfunction init(){get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupMenu();setupNewsletter();renderCart();loadProducts()}init();
