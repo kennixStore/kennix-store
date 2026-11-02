@@ -18,7 +18,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 .inventory-meta{font-size:13px;color:#56645b}
 .deleteBtn{background:#c62828}
 .status{background:#f5f3ff}
-.small{font-size:14px;color:#555}
+.small{font-size:14px;color:#555}.choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0 16px}.choice{display:flex;align-items:center;gap:6px;background:#f5f7f4;border:1px solid #e0e6df;border-radius:7px;padding:8px;font-size:13px}.choice input{width:auto;margin:0}.variant-entry{background:#fbfcfa;border-radius:8px}
 </style>
 </head>
 <body><header>
@@ -38,7 +38,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <option>Shoes</option>
 <option>Bags</option>
 <option>Accessories</option>
-</select><textarea id="description" placeholder="Product description" required></textarea><input id="price" type="number" min="1" placeholder="Price in naira" required>
+</select><textarea id="description" placeholder="Product description" required></textarea><input id="comparePrice" type="number" min="1" placeholder="Original price (13% discount calculated automatically)" required><input id="price" type="number" min="1" placeholder="Discounted price" readonly required>
 <label>Product picture</label>
 <input id="image" type="file" accept="image/*" required>
 <button type="submit">Upload Product</button>
@@ -52,15 +52,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <h2>Variant Stock Inventory</h2>
 <form id="variantForm">
 <label for="variantProduct">Product</label><select id="variantProduct" required><option value="">Loading products...</option></select>
-<div id="variantRows">
-<div class="variant-entry inventory-row">
-<label>Colour</label><input class="variant-color" placeholder="e.g. Black" required>
-<label>Size</label><input class="variant-size" placeholder="e.g. Medium or One Size" required>
-<label>Stock quantity</label><input class="variant-stock" type="number" min="0" step="1" placeholder="Available quantity" required>
-<label>Variant price (optional)</label><input class="variant-price" type="number" min="0" step="1" placeholder="Leave blank to use product price">
-</div>
-</div>
-<button id="addVariantRow" type="button" class="editBtn">+ Add Another Colour / Size</button>
+<p class="small">Choose all sizes and colours you have. We will create every combination.</p><label>Sizes</label><div id="sizeChoices" class="choice-grid"></div><label>Colours</label><div id="colorChoices" class="choice-grid"></div><button id="generateVariants" type="button" class="editBtn">Generate combinations</button><div id="variantRows"></div>
 <button id="saveVariant" type="submit">Save All Stock Options</button>
 <p id="variantMessage" class="small"></p>
 </form>
@@ -287,12 +279,13 @@ async function editProduct(p) {
   const description = prompt("Product description:", p.Description || "");
   if (description === null) return;
 
-  const priceText = prompt("Price in naira:", String(p.Price || ""));
+  const priceText = prompt("Original price before 13% discount:", String(p.compare_at_price || p.Price || ""));
   if (priceText === null) return;
 
-  const price = Number(priceText);
+  const originalPrice = Number(priceText);
+  const price = Math.round(originalPrice * 0.87);
 
-  if (!Number.isFinite(price) || price <= 0) {
+  if (!Number.isFinite(originalPrice) || originalPrice <= 0) {
     alert("Enter a valid price greater than zero.");
     return;
   }
@@ -334,6 +327,7 @@ async function editProduct(p) {
       Category: category.trim(),
       Description: description.trim(),
       Price: price,
+      compare_at_price: originalPrice,
       Image_Url: imageUrl
     })
     .eq("id", p.id);
@@ -359,6 +353,7 @@ function chooseImage() {
 
 /* ADD PRODUCT */
 
+document.getElementById("comparePrice").addEventListener("input",event=>{const n=Number(event.target.value);document.getElementById("price").value=n>0?Math.round(n*0.87):"";});
 form.addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -367,8 +362,12 @@ form.addEventListener("submit", async event => {
   const name = document.getElementById("name").value.trim();
   const category = document.getElementById("category").value;
   const description = document.getElementById("description").value.trim();
-  const price = Number(document.getElementById("price").value);
+  const originalPrice = Number(document.getElementById("comparePrice").value);
+  const price = Math.round(originalPrice * 0.87);
+  document.getElementById("price").value = price;
   const file = document.getElementById("image").files[0];
+
+  if (!Number.isFinite(originalPrice) || originalPrice <= 0) { message.textContent="Enter a valid original price."; return; }
 
   if (!file || !file.type.startsWith("image/")) {
     message.textContent = "Choose a valid image.";
@@ -405,6 +404,7 @@ form.addEventListener("submit", async event => {
       Category: category,
       Description: description,
       Price: price,
+      compare_at_price: originalPrice,
       Image_Url: imageData.publicUrl,
       Is_active: true
     });
@@ -444,7 +444,7 @@ async function loadVariantProducts(){
 }
 async function loadVariantInventory(){
   variantList.textContent="Loading inventory...";
-  const {data,error}=await db.from("product_variants").select("id,product_id,color,size,stock_quantity,price,is_active").order("product_id").order("color").order("size");
+  const {data,error}=await db.from("product_variants").select("id,product_id,color,size,stock_quantity,price,compare_at_price,is_active").order("product_id").order("color").order("size");
   if(error){variantList.textContent="Could not load stock options: "+error.message;return}
   variantList.replaceChildren();
   if(!data?.length){variantList.textContent="No stock options added yet.";return}
@@ -468,45 +468,12 @@ async function loadVariantInventory(){
     row.append(title,meta,edit,toggle);variantList.append(row);
   });
 }
-function addVariantEntry(){
-  const entry=document.createElement("div");entry.className="variant-entry inventory-row";
-  entry.innerHTML='<label>Colour</label><input class="variant-color" placeholder="e.g. Black" required><label>Size</label><input class="variant-size" placeholder="e.g. Medium or One Size" required><label>Stock quantity</label><input class="variant-stock" type="number" min="0" step="1" placeholder="Available quantity" required><label>Variant price (optional)</label><input class="variant-price" type="number" min="0" step="1" placeholder="Leave blank to use product price"><button type="button" class="deleteBtn remove-variant">Remove this option</button>';
-  entry.querySelector(".remove-variant").onclick=()=>entry.remove();
-  document.getElementById("variantRows").append(entry);
-}
-document.getElementById("addVariantRow").addEventListener("click",addVariantEntry);
-variantForm.addEventListener("submit",async event=>{
-  event.preventDefault();if(!(await checkLogin()))return;
-  const product_id=Number(variantProduct.value);
-  if(!product_id){variantMessage.textContent="Choose a product first.";return}
-  const entries=[...document.querySelectorAll(".variant-entry")];
-  const rows=[];const seen=new Set();
-  for(const entry of entries){
-    const color=entry.querySelector(".variant-color").value.trim();
-    const size=entry.querySelector(".variant-size").value.trim();
-    const stockText=entry.querySelector(".variant-stock").value.trim();
-    const priceText=entry.querySelector(".variant-price").value.trim();
-    const stock_quantity=Number(stockText);
-    if(!color||!size||stockText===""||!Number.isInteger(stock_quantity)||stock_quantity<0){variantMessage.textContent="Complete every colour, size and valid stock quantity.";return}
-    const key=color.toLowerCase()+"::"+size.toLowerCase();
-    if(seen.has(key)){variantMessage.textContent="You have entered the same colour and size more than once.";return}
-    seen.add(key);
-    let price=null;
-    if(priceText!==""){price=Number(priceText);if(!Number.isFinite(price)||price<0){variantMessage.textContent="Enter a valid price or leave it blank.";return}}
-    rows.push({product_id,color,size,stock_quantity,price,is_active:true});
-  }
-  const save=document.getElementById("saveVariant");save.disabled=true;variantMessage.textContent="Saving "+rows.length+" stock option(s)...";
-  const {error}=await db.from("product_variants").upsert(rows,{onConflict:"product_id,color,size"});
-  save.disabled=false;
-  if(error){variantMessage.textContent="Could not save. "+error.message;return}
-  variantMessage.textContent=rows.length+" stock option(s) saved successfully.";
-  document.getElementById("variantRows").replaceChildren();
-  const first=document.createElement("div");first.className="variant-entry inventory-row";
-  first.innerHTML='<label>Colour</label><input class="variant-color" placeholder="e.g. Black" required><label>Size</label><input class="variant-size" placeholder="e.g. Medium or One Size" required><label>Stock quantity</label><input class="variant-stock" type="number" min="0" step="1" placeholder="Available quantity" required><label>Variant price (optional)</label><input class="variant-price" type="number" min="0" step="1" placeholder="Leave blank to use product price">';
-  document.getElementById("variantRows").append(first);
-  await loadVariantInventory();
-});
-
+const sizePresets=["XS","S","M","L","XL","XXL","XXXL","One Size","EU 36","EU 37","EU 38","EU 39","EU 40","EU 41","EU 42","EU 43","EU 44","EU 45","EU 46"];
+const colorPresets=["Black","White","Blue","Navy Blue","Red","Pink","Baby Pink","Purple","Green","Olive","Brown","Cream","Beige","Grey","Yellow","Orange","Wine","Burgundy"];
+function addChoiceOptions(id,values){document.getElementById(id).innerHTML=values.map(v=>'<label class="choice"><input type="checkbox" value="'+v+'"><span>'+v+'</span></label>').join("")}
+addChoiceOptions("sizeChoices",sizePresets);addChoiceOptions("colorChoices",colorPresets);
+document.getElementById("generateVariants").onclick=()=>{const sizes=[...document.querySelectorAll("#sizeChoices input:checked")].map(x=>x.value),colors=[...document.querySelectorAll("#colorChoices input:checked")].map(x=>x.value);if(!sizes.length||!colors.length){variantMessage.textContent="Select at least one size and one colour.";return}const box=document.getElementById("variantRows");box.replaceChildren();colors.forEach(color=>sizes.forEach(size=>{const e=document.createElement("div");e.className="variant-entry inventory-row";e.dataset.color=color;e.dataset.size=size;e.innerHTML='<strong>'+color+' / '+size+'</strong><label>Stock quantity</label><input class="variant-stock" type="number" min="0" step="1" value="0" required><label>Original price (optional)</label><input class="variant-original" type="number" min="1" placeholder="Uses product price if blank">';box.append(e)}));variantMessage.textContent=colors.length*sizes.length+" combinations created. Enter stock for each."};
+variantForm.addEventListener("submit",async event=>{event.preventDefault();if(!(await checkLogin()))return;const product_id=Number(variantProduct.value),entries=[...document.querySelectorAll(".variant-entry")];if(!product_id||!entries.length){variantMessage.textContent="Choose a product and generate combinations.";return}const rows=[];for(const e of entries){const originalText=e.querySelector(".variant-original").value.trim(),stock_quantity=Number(e.querySelector(".variant-stock").value),compare_at_price=originalText===""?null:Number(originalText),price=compare_at_price===null?null:Math.round(compare_at_price*.87);if(!Number.isInteger(stock_quantity)||stock_quantity<0||(compare_at_price!==null&&(!Number.isFinite(compare_at_price)||compare_at_price<=0))){variantMessage.textContent="Check stock and original prices for "+e.dataset.color+" / "+e.dataset.size;return}rows.push({product_id,color:e.dataset.color,size:e.dataset.size,stock_quantity,price,compare_at_price,is_active:true})}const save=document.getElementById("saveVariant");save.disabled=true;variantMessage.textContent="Saving options...";const {error}=await db.from("product_variants").upsert(rows,{onConflict:"product_id,color,size"});save.disabled=false;if(error){variantMessage.textContent="Save failed: "+error.message;return}variantMessage.textContent=rows.length+" colour/size options saved.";document.getElementById("variantRows").replaceChildren();document.querySelectorAll("#sizeChoices input,#colorChoices input").forEach(x=>x.checked=false);await loadVariantInventory()});
 /* START */
 
 (async () => {
