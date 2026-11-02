@@ -143,6 +143,7 @@ Deno.serve(async (req) => {
       .insert({
         customer_name: customer.name.trim(),
         customer_phone: customer.phone.trim(),
+        customer_email: customer.email.trim(),
         delivery_address: customer.address.trim(),
         product_name: cleanItems.map((i) => i.product_name).join(", "),
         quantity: totalQuantity,
