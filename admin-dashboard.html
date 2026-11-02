@@ -116,18 +116,12 @@ async function loadOrders() {
     const details = document.createElement("p");
     details.textContent =
       "Customer: " + order.customer_name +
-      "
-Phone: " + order.customer_phone +
-      "
-Address: " + order.delivery_address +
-      "
-Product: " + order.product_name +
-      "
-Quantity: " + order.quantity +
-      "
-Unit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
-      "
-Total: ₦" + Number(order.total_amount).toLocaleString("en-NG");
+      "\\nPhone: " + order.customer_phone +
+      "\\nAddress: " + order.delivery_address +
+      "\\nProduct: " + order.product_name +
+      "\\nQuantity: " + order.quantity +
+      "\\nUnit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
+      "\\nTotal: ₦" + Number(order.total_amount).toLocaleString("en-NG");
 
     details.style.whiteSpace = "pre-line";
 
