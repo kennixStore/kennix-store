@@ -116,12 +116,12 @@ async function loadOrders() {
     const details = document.createElement("p");
     details.textContent =
       "Customer: " + order.customer_name +
-      "\\nPhone: " + order.customer_phone +
-      "\\nAddress: " + order.delivery_address +
-      "\\nProduct: " + order.product_name +
-      "\\nQuantity: " + order.quantity +
-      "\\nUnit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
-      "\\nTotal: ₦" + Number(order.total_amount).toLocaleString("en-NG");
+      "\nPhone: " + order.customer_phone +
+      "\nAddress: " + order.delivery_address +
+      "\nProduct: " + order.product_name +
+      "\nQuantity: " + order.quantity +
+      "\nUnit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
+      "\nTotal: ₦" + Number(order.total_amount).toLocaleString("en-NG");
 
     details.style.whiteSpace = "pre-line";
 
@@ -451,7 +451,7 @@ async function loadVariantInventory(){
     const edit=document.createElement("button");edit.className="editBtn";edit.textContent="Edit stock option";
     edit.onclick=async()=>{
       const stockText=prompt("New stock quantity:",String(v.stock_quantity));if(stockText===null)return;
-      if(!/^\\d+$/.test(stockText.trim())){alert("Enter a whole number of 0 or more.");return}
+      if(!/^\d+$/.test(stockText.trim())){alert("Enter a whole number of 0 or more.");return}
       const priceText=prompt("Variant price in naira (leave blank to use product price):",v.price==null?"":String(v.price));if(priceText===null)return;
       let price=null;if(priceText.trim()!==""){price=Number(priceText);if(!Number.isFinite(price)||price<0){alert("Enter a valid price.");return}}
       const {error:updateError}=await db.from("product_variants").update({stock_quantity:Number(stockText),price,is_active:true}).eq("id",v.id);
