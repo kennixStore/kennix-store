@@ -38,7 +38,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <option>Shoes</option>
 <option>Bags</option>
 <option>Accessories</option>
-</select><textarea id="description" placeholder="Product description" required></textarea><input id="comparePrice" type="number" min="1" placeholder="Original price (13% discount calculated automatically)" required><input id="price" type="number" min="1" placeholder="Discounted price" readonly required>
+</select><textarea id="description" placeholder="Product description" required></textarea><h3>Price & discount</h3><label class="choice"><input id="applyDiscount" type="checkbox" checked> Apply 13% discount</label><label for="comparePrice" id="originalPriceLabel">Original price (before discount)</label><input id="comparePrice" type="number" min="1" placeholder="Enter the normal price"><label for="price" id="sellingPriceLabel">Selling price after discount</label><input id="price" type="number" min="1" placeholder="Selling price" readonly required><p class="small" id="priceHelp">The selling price is calculated automatically when discount is on. Untick to enter a normal selling price.</p>
 <label>Product picture</label>
 <input id="image" type="file" accept="image/*" required>
 <button type="submit">Upload Product</button>
@@ -229,20 +229,14 @@ async function loadProducts() {
     deleteBtn.className = "deleteBtn";
 
     deleteBtn.onclick = async () => {
-      if (!confirm('Delete "' + p.Name + '" permanently?')) return;
-
-      const { error } = await db
-        .from("products")
-        .delete()
-        .eq("id", p.id);
-
-      if (error) {
-        alert("Delete failed: " + error.message);
-        return;
-      }
-
-      alert("Product deleted!");
-      loadProducts();
+      if (!(await checkLogin())) return;
+      if (!confirm('Delete "' + p.Name + '" and all its colour/size stock options permanently?')) return;
+      const { error: variantError } = await db.from("product_variants").delete().eq("product_id", p.id);
+      if (variantError) { alert("Could not delete stock options: " + variantError.message); return; }
+      const { error } = await db.from("products").delete().eq("id", p.id);
+      if (error) { alert("Product could not be deleted: " + error.message); return; }
+      alert("Product and its stock options deleted.");
+      await loadProducts(); await loadVariantProducts(); await loadVariantInventory();
     };
 
     item.append(title, category, description, price, editBtn, deleteBtn);
@@ -279,15 +273,20 @@ async function editProduct(p) {
   const description = prompt("Product description:", p.Description || "");
   if (description === null) return;
 
-  const priceText = prompt("Original price before 13% discount:", String(p.compare_at_price || p.Price || ""));
-  if (priceText === null) return;
-
-  const originalPrice = Number(priceText);
-  const price = Math.round(originalPrice * 0.87);
-
-  if (!Number.isFinite(originalPrice) || originalPrice <= 0) {
-    alert("Enter a valid price greater than zero.");
-    return;
+  const applyDiscount = confirm("Apply the 13% discount? Choose Cancel for a normal selling price.");
+  let originalPrice = null;
+  let price = 0;
+  if (applyDiscount) {
+    const priceText = prompt("Enter the original price before discount:", String(p.compare_at_price || p.Price || ""));
+    if (priceText === null) return;
+    originalPrice = Number(priceText);
+    if (!Number.isFinite(originalPrice) || originalPrice <= 0) { alert("Enter a valid original price."); return; }
+    price = Math.round(originalPrice * 0.87);
+  } else {
+    const priceText = prompt("Enter the normal selling price:", String(p.Price || ""));
+    if (priceText === null) return;
+    price = Number(priceText);
+    if (!Number.isFinite(price) || price <= 0) { alert("Enter a valid selling price."); return; }
   }
 
   let imageUrl = p.Image_Url || "";
@@ -353,7 +352,13 @@ function chooseImage() {
 
 /* ADD PRODUCT */
 
-document.getElementById("comparePrice").addEventListener("input",event=>{const n=Number(event.target.value);document.getElementById("price").value=n>0?Math.round(n*0.87):"";});
+const applyDiscountInput=document.getElementById("applyDiscount");
+const comparePriceInput=document.getElementById("comparePrice");
+const salePriceInput=document.getElementById("price");
+function updateProductPriceFields(){const on=applyDiscountInput.checked;comparePriceInput.hidden=!on;document.getElementById("originalPriceLabel").hidden=!on;salePriceInput.readOnly=on;document.getElementById("sellingPriceLabel").textContent=on?"Selling price after 13% discount":"Selling price";document.getElementById("priceHelp").textContent=on?"Enter the original price above. KENNIX calculates the 13% discounted price.":"Enter the normal selling price. No discount will be applied.";if(on){const n=Number(comparePriceInput.value);salePriceInput.value=n>0?Math.round(n*.87):"";}else salePriceInput.value="";}
+applyDiscountInput.addEventListener("change",updateProductPriceFields);
+comparePriceInput.addEventListener("input",updateProductPriceFields);
+updateProductPriceFields();
 form.addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -362,12 +367,12 @@ form.addEventListener("submit", async event => {
   const name = document.getElementById("name").value.trim();
   const category = document.getElementById("category").value;
   const description = document.getElementById("description").value.trim();
-  const originalPrice = Number(document.getElementById("comparePrice").value);
-  const price = Math.round(originalPrice * 0.87);
-  document.getElementById("price").value = price;
-  const file = document.getElementById("image").files[0];
-
-  if (!Number.isFinite(originalPrice) || originalPrice <= 0) { message.textContent="Enter a valid original price."; return; }
+  const discounted=applyDiscountInput.checked;
+  const originalPrice=discounted?Number(comparePriceInput.value):null;
+  const price=discounted?Math.round(originalPrice*.87):Number(salePriceInput.value);
+  const file=document.getElementById("image").files[0];
+  if(discounted&&(!Number.isFinite(originalPrice)||originalPrice<=0)){message.textContent="Enter a valid original price.";return;}
+  if(!Number.isFinite(price)||price<=0){message.textContent="Enter a valid selling price.";return;}
 
   if (!file || !file.type.startsWith("image/")) {
     message.textContent = "Choose a valid image.";
@@ -465,7 +470,9 @@ async function loadVariantInventory(){
     };
     const toggle=document.createElement("button");toggle.className="deleteBtn";toggle.textContent=v.is_active?"Deactivate option":"Activate option";
     toggle.onclick=async()=>{const {error:toggleError}=await db.from("product_variants").update({is_active:!v.is_active}).eq("id",v.id);if(toggleError){alert("Could not change option: "+toggleError.message);return}loadVariantInventory()};
-    row.append(title,meta,edit,toggle);variantList.append(row);
+    const remove=document.createElement("button");remove.className="deleteBtn";remove.textContent="Delete option";
+    remove.onclick=async()=>{if(!(await checkLogin()))return;if(!confirm("Delete "+v.color+" / "+v.size+" for "+(product?.Name||"this product")+"?"))return;const {error:deleteError}=await db.from("product_variants").delete().eq("id",v.id);if(deleteError){alert("Could not delete stock option: "+deleteError.message);return}await loadVariantInventory()};
+    row.append(title,meta,edit,toggle,remove);variantList.append(row);
   });
 }
 const sizePresets=["XS","S","M","L","XL","XXL","XXXL","One Size","EU 36","EU 37","EU 38","EU 39","EU 40","EU 41","EU 42","EU 43","EU 44","EU 45","EU 46"];
