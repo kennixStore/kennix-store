@@ -61,3 +61,22 @@
  .drawer-bottom{max-height:72dvh}
  #kennix-receipt-file{font-size:11px}
 }
+
+/* KENNIX organised delivery form */
+.kennix-delivery-form{display:flex;flex-direction:column;gap:17px;padding:5px 0 12px}
+.checkout-form-heading{padding:4px 0 2px}
+.checkout-form-heading .eyebrow{margin:0 0 7px;color:#8b7130}
+.checkout-form-heading h3{margin:0;color:var(--green);font:600 23px var(--serif)}
+.checkout-form-heading>p:last-child{font-size:11px;line-height:1.6;color:var(--muted);margin:7px 0 0}
+.checkout-field-group{display:flex;flex-direction:column;gap:11px;padding:14px;border:1px solid #e5e9e3;border-radius:5px;background:#fbfcf9}
+.checkout-field-group h4{margin:0 0 2px;color:var(--green);font-size:11px;letter-spacing:.4px}
+.checkout-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.checkout-field label{font-size:10px;font-weight:700;color:#536057}
+.checkout-field label span{font-weight:400;color:#879188}
+.checkout-field input,.checkout-field textarea{display:block;width:100%;min-width:0;border:1px solid #dce3dc;border-radius:3px;background:#fff;color:#17231d;padding:12px;font:inherit;font-size:12px;outline:none}
+.checkout-field input:focus,.checkout-field textarea:focus{border-color:var(--gold);box-shadow:0 0 0 2px #d4af3720}
+.checkout-field textarea{resize:vertical;min-height:65px}
+.checkout-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kennix-delivery-form>#transfer-submit,.kennix-delivery-form>#checkout-back{width:100%;margin:0}
+.kennix-delivery-form .checkout-error{margin:0}
+@media(max-width:560px){.kennix-delivery-form{gap:13px}.checkout-field-group{padding:12px;gap:10px}.checkout-field-grid{grid-template-columns:1fr 1fr}.checkout-form-heading h3{font-size:21px}}
