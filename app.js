@@ -153,4 +153,15 @@ function openCheckoutForm(){
   }
  });
 }
-function init(){setupMenu();get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupNewsletter();renderCart();loadProducts()}init();
+function setupTerms(){
+ const gate=get("terms-gate");
+ if(!gate)return;
+ const storageKey="kennix_terms_accepted_2026_11_03";
+ const show=()=>{gate.hidden=false;document.body.style.overflow="hidden";};
+ const hide=()=>{gate.hidden=true;document.body.style.overflow="";};
+ if(localStorage.getItem(storageKey)!=="yes")show();
+ get("terms-accept")?.addEventListener("click",()=>{localStorage.setItem(storageKey,"yes");hide();});
+ get("terms-decline")?.addEventListener("click",()=>{get("terms-decline-note").hidden=false;});
+ get("open-terms")?.addEventListener("click",e=>{e.preventDefault();get("terms-decline-note").hidden=true;show();});
+}
+function init(){setupTerms();setupMenu();get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupNewsletter();renderCart();loadProducts()}init();
