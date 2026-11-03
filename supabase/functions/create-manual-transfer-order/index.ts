@@ -142,7 +142,6 @@ Deno.serve(async (req) => {
       product_name: cleanItems.map((item) => item.product_name).join(", ").slice(0, 1000),
       quantity: totalQuantity,
       unit_price: Math.round((finalTotal / totalQuantity) * 100) / 100,
-      total_amount: finalTotal,
       discount_amount: discountAmount,
       delivery_fee: 0,
       status: "Pending",
