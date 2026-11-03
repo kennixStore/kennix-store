@@ -74,24 +74,72 @@ function openCheckoutForm(){
    if(!response.ok)throw new Error(data?.error||`Checkout request failed (${response.status}).`);
    if(!data?.success||!data.order_reference||!data.payment)throw new Error(data?.error||"Your order could not be created. Please try again.");
    const amount=money(data.amount);
+   const orderReference=String(data.order_reference);
    panel.innerHTML=`<section class="checkout-form transfer-instructions">
     <h3>Order created</h3>
-    <p>Your order reference:</p><h2>${data.order_reference}</h2>
+    <p>Your order reference:</p><h2 id="created-order-reference">${orderReference}</h2>
     <p>Subtotal: <strong>${money(data.subtotal)}</strong></p>
     <p>First-purchase discount: <strong>−${money(data.discount_amount)}</strong></p>
     <p>Delivery: <strong>FREE</strong></p>
     <h3>Transfer ${amount} to:</h3>
     <p>Bank: <strong>${data.payment.bank}</strong></p>
     <p>Account name: <strong>${data.payment.account_name}</strong></p>
-    <p>Account number: <strong>${data.payment.account_number}</strong></p>
+    <p>Account number: <strong id="kennix-account-number">${data.payment.account_number}</strong>
+    <button type="button" id="copy-account-number">COPY ACCOUNT NUMBER</button></p>
     <p>${data.payment.instructions}</p>
     <p><strong>Important:</strong> Use the exact amount and keep your transfer receipt. Payment is not confirmed until KENNIX verifies it.</p>
+    <hr>
+    <h3>Upload your transfer receipt</h3>
+    <p>After making your transfer, upload a clear receipt (JPG, PNG, WEBP or PDF; maximum 5MB).</p>
+    <form id="kennix-receipt-form">
+      <input id="kennix-receipt-file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" required>
+      <button class="primary-btn" id="kennix-upload-receipt" type="submit">UPLOAD RECEIPT</button>
+      <p id="kennix-upload-message" role="status"></p>
+    </form>
+    <p><a href="track-order.html?reference=${encodeURIComponent(orderReference)}" target="_blank" rel="noopener">Track this order</a></p>
     <p>Need help? WhatsApp: <a href="https://wa.me/2349135102119" target="_blank" rel="noopener">Contact KENNIX</a></p>
     <button class="primary-btn" type="button" id="transfer-done">DONE</button>
    </section>`;
+   panel.querySelector("#copy-account-number").addEventListener("click",async()=>{
+    try{await navigator.clipboard.writeText(String(data.payment.account_number));toast("Account number copied.");}
+    catch{toast("Please copy the account number manually.");}
+   });
+   panel.querySelector("#kennix-receipt-form").addEventListener("submit",async uploadEvent=>{
+    uploadEvent.preventDefault();
+    const file=panel.querySelector("#kennix-receipt-file").files[0];
+    const uploadButton=panel.querySelector("#kennix-upload-receipt");
+    const uploadMessage=panel.querySelector("#kennix-upload-message");
+    if(!file)return;
+    if(file.size>5*1024*1024){uploadMessage.textContent="File is larger than 5MB. Choose a smaller file.";return;}
+    const allowed=["image/jpeg","image/png","image/webp","application/pdf"];
+    if(!allowed.includes(file.type)){uploadMessage.textContent="Choose a JPG, PNG, WEBP or PDF file.";return;}
+    uploadButton.disabled=true;uploadButton.textContent="UPLOADING...";
+    uploadMessage.textContent="Please wait...";
+    try{
+     const base64=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result).split(",")[1]);
+      reader.onerror=()=>reject(new Error("Could not read the selected file."));
+      reader.readAsDataURL(file);
+     });
+     const uploadResponse=await fetch(`${SUPABASE_URL}/functions/v1/upload-payment-proof`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
+      body:JSON.stringify({order_reference:orderReference,phone:customer.phone,mime_type:file.type,file_base64:base64})
+     });
+     const uploadData=await uploadResponse.json();
+     if(!uploadResponse.ok||!uploadData?.success)throw new Error(uploadData?.error||"Receipt upload failed.");
+     uploadMessage.textContent="Receipt submitted. KENNIX will review your payment.";
+     panel.querySelector("#kennix-receipt-file").disabled=true;
+     uploadButton.hidden=true;
+    }catch(uploadError){
+     uploadMessage.textContent=uploadError.message||"Receipt upload failed. Please try again.";
+     uploadButton.disabled=false;uploadButton.textContent="UPLOAD RECEIPT";
+    }
+   });
    panel.querySelector("#transfer-done").addEventListener("click",()=>{
     cart=[];renderCart();panel.hidden=true;panel.replaceChildren();checkoutButton.hidden=false;closeCart();
-    toast("Order created. Complete your bank transfer.");
+    toast("Order created. You can track it using your order reference.");
    });
   }catch(err){
    console.error("KENNIX manual checkout failed:",err);
