@@ -37,37 +37,61 @@ function openCheckoutForm(){
  checkoutButton.hidden=true;
  panel.innerHTML=`<form id="kennix-checkout-form" class="checkout-form">
  <h3>Delivery details</h3>
- <label for="checkout-name">Full name</label><input id="checkout-name" name="name" autocomplete="name" required>
+ <label for="checkout-name">Full name</label><input id="checkout-name" name="name" autocomplete="name" required maxlength="120">
  <label for="checkout-phone">Phone number</label><input id="checkout-phone" name="phone" type="tel" autocomplete="tel" required>
  <label for="checkout-email">Email address</label><input id="checkout-email" name="email" type="email" autocomplete="email" required>
- <label for="checkout-address">Delivery address</label><textarea id="checkout-address" name="address" autocomplete="street-address" rows="3" required></textarea>
- <button id="paystack-submit" class="primary-btn" type="submit">CONTINUE TO PAYSTACK ↗</button>
+ <label for="checkout-address">Street address</label><textarea id="checkout-address" name="address" autocomplete="street-address" rows="2" required></textarea>
+ <label for="checkout-city">City / town</label><input id="checkout-city" name="city" required>
+ <label for="checkout-state">State</label><input id="checkout-state" name="state" required>
+ <label for="checkout-landmark">Landmark (optional)</label><input id="checkout-landmark" name="landmark">
+ <button id="transfer-submit" class="primary-btn" type="submit">PLACE ORDER & GET TRANSFER DETAILS ↗</button>
  <button id="checkout-back" class="checkout-back" type="button">BACK TO BAG</button>
  <p class="checkout-error" id="checkout-error" role="alert"></p>
  </form>`;
  panel.querySelector("#checkout-back").addEventListener("click",()=>{panel.hidden=true;panel.replaceChildren();checkoutButton.hidden=false});
  panel.querySelector("#kennix-checkout-form").addEventListener("submit",async e=>{
   e.preventDefault();
-  const form=e.currentTarget,submit=panel.querySelector("#paystack-submit"),errorBox=panel.querySelector("#checkout-error");
-  submit.disabled=true;submit.textContent="CONNECTING TO PAYSTACK...";errorBox.textContent="";
+  const form=e.currentTarget,submit=panel.querySelector("#transfer-submit"),errorBox=panel.querySelector("#checkout-error");
+  submit.disabled=true;submit.textContent="CREATING YOUR ORDER...";errorBox.textContent="";
   const customer={
    name:form.elements.name.value.trim(),
    phone:form.elements.phone.value.trim(),
    email:form.elements.email.value.trim(),
-   address:form.elements.address.value.trim()
+   address:form.elements.address.value.trim(),
+   city:form.elements.city.value.trim(),
+   state:form.elements.state.value.trim(),
+   landmark:form.elements.landmark.value.trim()
   };
   const items=cart.map(item=>({product_id:item.id,variant_id:item.variantId,quantity:item.quantity}));
   try{
-   const {data,error}=await getDb().functions.invoke("create-paystack-checkout",{body:{customer,items}});
+   const {data,error}=await getDb().functions.invoke("create-manual-transfer-order",{body:{customer,items}});
    if(error)throw error;
-   if(!data?.success||!data.authorization_url)throw new Error(data?.error||"Payment could not be started. Please try again.");
-   window.location.assign(data.authorization_url);
+   if(!data?.success||!data.order_reference||!data.payment)throw new Error(data?.error||"Your order could not be created. Please try again.");
+   const amount=money(data.amount);
+   panel.innerHTML=`<section class="checkout-form transfer-instructions">
+    <h3>Order created</h3>
+    <p>Your order reference:</p><h2>${data.order_reference}</h2>
+    <p>Subtotal: <strong>${money(data.subtotal)}</strong></p>
+    <p>First-purchase discount: <strong>−${money(data.discount_amount)}</strong></p>
+    <p>Delivery: <strong>FREE</strong></p>
+    <h3>Transfer ${amount} to:</h3>
+    <p>Bank: <strong>${data.payment.bank}</strong></p>
+    <p>Account name: <strong>${data.payment.account_name}</strong></p>
+    <p>Account number: <strong>${data.payment.account_number}</strong></p>
+    <p>${data.payment.instructions}</p>
+    <p><strong>Important:</strong> Use the exact amount and keep your transfer receipt. Payment is not confirmed until KENNIX verifies it.</p>
+    <p>Need help? WhatsApp: <a href="https://wa.me/2349135102119" target="_blank" rel="noopener">Contact KENNIX</a></p>
+    <button class="primary-btn" type="button" id="transfer-done">DONE</button>
+   </section>`;
+   panel.querySelector("#transfer-done").addEventListener("click",()=>{
+    cart=[];renderCart();panel.hidden=true;panel.replaceChildren();checkoutButton.hidden=false;closeCart();
+    toast("Order created. Complete your bank transfer.");
+   });
   }catch(err){
-   console.error("KENNIX checkout failed:",err);
-   errorBox.textContent=err?.context?.error||err?.message||"Unable to start payment. Please try again.";
-   submit.disabled=false;submit.textContent="CONTINUE TO PAYSTACK ↗";
+   console.error("KENNIX manual checkout failed:",err);
+   errorBox.textContent=err?.context?.error||err?.message||"Unable to create your order. Please try again.";
+   submit.disabled=false;submit.textContent="PLACE ORDER & GET TRANSFER DETAILS ↗";
   }
  });
 }
-
 function init(){setupMenu();get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupNewsletter();renderCart();loadProducts()}init();
