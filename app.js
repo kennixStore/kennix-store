@@ -108,7 +108,7 @@ function openCheckoutForm(){
       <button class="primary-btn" id="kennix-upload-receipt" type="submit">UPLOAD RECEIPT</button>
       <p id="kennix-upload-message" role="status"></p>
     </form>
-    <p><a href="track-order.html?reference=${encodeURIComponent(orderReference)}" target="_blank" rel="noopener">Track this order</a></p>
+    <div class="checkout-track-callout"><p>Want to check your order progress?</p><a class="primary-btn checkout-track-button" href="track-order.html?reference=${encodeURIComponent(orderReference)}">TRACK MY ORDER ↗</a></div>
     <p>Need help? WhatsApp: <a href="https://wa.me/2349135102119" target="_blank" rel="noopener">Contact KENNIX</a></p>
     <button class="primary-btn" type="button" id="transfer-done">DONE</button>
    </section>`;
