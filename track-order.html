@@ -41,8 +41,9 @@ a{color:#d4af37}
 <label>Order Reference</label>
 <input id="reference" placeholder="KNX-..." required>
 
-<label>Phone Number Used During Checkout</label>
-<input id="phone" type="tel" placeholder="Your phone number" required>
+<label>Phone Number Used During Checkout (Start with +234)</label>
+<input id="phone" type="tel" inputmode="tel" placeholder="+2349135102119" required>
+<small style="display:block;margin-top:7px;color:#c7d5ce">You can also enter an older number starting with 0.</small>
 
 <button id="trackButton" type="submit">TRACK MY ORDER</button>
 </form>
@@ -112,9 +113,9 @@ form.addEventListener("submit", async e => {
       status === "shipped" ? 3 :
       status === "processing" ? 2 : 0;
     const cancelled = status === "cancelled";
-    const paymentConfirmed = paymentPaid || progress >= 2;
+    const paymentConfirmed = paymentPaid;
     const timeline = stages.map((stage,index) => {
-      const done = index === 0 || (index === 1 && paymentConfirmed) || index <= progress;
+      const done = index === 0 || (index === 1 && paymentConfirmed) || (index >= 2 && index <= progress);
       const current = !cancelled && !done && (
         (index === 1 && !paymentConfirmed) ||
         (index === 2 && paymentConfirmed && progress < 2) ||
