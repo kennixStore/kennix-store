@@ -93,6 +93,7 @@ function openCheckoutForm(){
     <p>Subtotal: <strong>${money(data.subtotal)}</strong></p>
     <p>First-purchase discount: <strong>−${money(data.discount_amount)}</strong></p>
     <p>Delivery: <strong>FREE</strong></p>
+    <p><strong>Estimated arrival:</strong> Your order should arrive within <strong>7 to 18 days</strong> after your payment is confirmed.</p>
     <h3>Transfer ${amount} to:</h3>
     <p>Bank: <strong>${data.payment.bank}</strong></p>
     <p>Account name: <strong>${data.payment.account_name}</strong></p>
