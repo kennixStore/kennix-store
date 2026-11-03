@@ -78,6 +78,7 @@ function openCheckoutForm(){
    panel.innerHTML=`<section class="checkout-form transfer-instructions">
     <h3>Order created</h3>
     <p>Your order reference:</p><div class="order-reference-row"><h2 id="created-order-reference">${orderReference}</h2><button type="button" id="copy-order-reference">COPY KNX CODE</button></div>
+    <p class="order-reference-notice"><strong>Important:</strong> Copy your KNX order code and keep it somewhere safe. You will need this code to track your order and when contacting KENNIX about your purchase.</p>
     <p>Subtotal: <strong>${money(data.subtotal)}</strong></p>
     <p>First-purchase discount: <strong>−${money(data.discount_amount)}</strong></p>
     <p>Delivery: <strong>FREE</strong></p>
