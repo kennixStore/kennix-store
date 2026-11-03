@@ -35,15 +35,26 @@ function openCheckoutForm(){
  if(!panel)return;
  panel.hidden=false;
  checkoutButton.hidden=true;
- panel.innerHTML=`<form id="kennix-checkout-form" class="checkout-form">
- <h3>Delivery details</h3>
- <label for="checkout-name">Full name</label><input id="checkout-name" name="name" autocomplete="name" required maxlength="120">
- <label for="checkout-phone">Phone number</label><input id="checkout-phone" name="phone" type="tel" autocomplete="tel" required>
- <label for="checkout-email">Email address</label><input id="checkout-email" name="email" type="email" autocomplete="email" required>
- <label for="checkout-address">Street address</label><textarea id="checkout-address" name="address" autocomplete="street-address" rows="2" required></textarea>
- <label for="checkout-city">City / town</label><input id="checkout-city" name="city" required>
- <label for="checkout-state">State</label><input id="checkout-state" name="state" required>
- <label for="checkout-landmark">Landmark (optional)</label><input id="checkout-landmark" name="landmark">
+ panel.innerHTML=`<form id="kennix-checkout-form" class="checkout-form kennix-delivery-form">
+ <div class="checkout-form-heading"><p class="eyebrow">KENNIX CHECKOUT</p><h3>Delivery information</h3><p>Enter your details so we can get your order to you.</p></div>
+ <section class="checkout-field-group">
+  <h4>Personal details</h4>
+  <div class="checkout-field"><label for="checkout-name">Full name</label><input id="checkout-name" name="name" autocomplete="name" placeholder="Enter your full name" required maxlength="120></div>
+  <div class="checkout-field"><label for="checkout-phone">Phone number</label><input id="checkout-phone" name="phone" type="tel" autocomplete="tel" placeholder="e.g. 08012345678" required></div>
+ </section>
+ <section class="checkout-field-group">
+  <h4>Contact information</h4>
+  <div class="checkout-field"><label for="checkout-email">Email address</label><input id="checkout-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+ </section>
+ <section class="checkout-field-group">
+  <h4>Delivery address</h4>
+  <div class="checkout-field"><label for="checkout-address">Street address</label><textarea id="checkout-address" name="address" autocomplete="street-address" rows="2" placeholder="House number, street name" required></textarea></div>
+  <div class="checkout-field-grid">
+   <div class="checkout-field"><label for="checkout-city">City / town</label><input id="checkout-city" name="city" placeholder="Your city" required></div>
+   <div class="checkout-field"><label for="checkout-state">State</label><input id="checkout-state" name="state" placeholder="Your state" required></div>
+  </div>
+  <div class="checkout-field"><label for="checkout-landmark">Landmark <span>(optional)</span></label><input id="checkout-landmark" name="landmark" placeholder="Nearby landmark"></div>
+ </section>
  <button id="transfer-submit" class="primary-btn" type="submit">PLACE ORDER & GET TRANSFER DETAILS ↗</button>
  <button id="checkout-back" class="checkout-back" type="button">BACK TO BAG</button>
  <p class="checkout-error" id="checkout-error" role="alert"></p>
