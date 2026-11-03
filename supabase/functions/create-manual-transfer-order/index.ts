@@ -8,6 +8,15 @@ const corsHeaders = {
   "Vary": "Origin",
 };
 
+const normalizePhone = (value: string): string | null => {
+  const digits = value.replace(/\D/g, "");
+  let normalized = digits;
+  if (digits.startsWith("0") && digits.length === 11) normalized = "234" + digits.slice(1);
+  else if (digits.startsWith("234") && digits.length === 13) normalized = digits;
+  else if (digits.length === 10) normalized = "234" + digits;
+  return /^234[789][01]\d{8}$/.test(normalized) ? normalized : null;
+};
+
 const reply = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
@@ -99,13 +108,15 @@ Deno.serve(async (req) => {
     total = Math.round(total * 100) / 100;
     if (!Number.isFinite(total) || total <= 0) return reply({ error: "Invalid order total." }, 400);
 
-    const phone = customer.phone.trim().replace(/[\\s()-]/g, "");
+    const phone = normalizePhone(customer.phone);
+    if (!phone) return reply({ error: "Enter a valid Nigerian phone number, e.g. +2349135102119." }, 400);
     const { data: previousPaidOrders, error: historyError } = await supabase
-      .from("orders").select("id").eq("customer_phone", phone)
-      .eq("payment_status", "paid").limit(1);
+      .from("orders").select("customer_phone").eq("payment_status", "paid");
     if (historyError) throw historyError;
 
-    const isFirstPurchase = !previousPaidOrders?.length;
+    const isFirstPurchase = !(previousPaidOrders || []).some((previous) =>
+      normalizePhone(String(previous.customer_phone || "")) === phone
+    );
     const eligibleSubtotal = cleanItems
       .filter((item) => item.promo_eligible)
       .reduce((sum, item) => sum + item.line_total, 0);
