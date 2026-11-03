@@ -1,4 +1,4 @@
-name: Deploy KENNIX Manual Checkout Function
+name: Deploy KENNIX Supabase Functions
 
 on:
   workflow_dispatch:
@@ -19,3 +19,8 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase functions deploy create-manual-transfer-order --project-ref shdstohkbpvoxjtghsob --no-verify-jwt --yes
+
+      - name: Deploy order tracking
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy track-order --project-ref shdstohkbpvoxjtghsob --no-verify-jwt --yestransfer-order --project-ref shdstohkbpvoxjtghsob --no-verify-jwt --yes
