@@ -28,4 +28,7 @@ create policy "KENNIX admins can view payment proofs"
 on storage.objects
 for select
 to authenticated
-using (bucket_id = 'payment-proofs');
+using (
+  bucket_id = 'payment-proofs'
+  and lower(coalesce(auth.jwt() ->> 'email', '')) = 'kennix2027@gmail.com'
+);
