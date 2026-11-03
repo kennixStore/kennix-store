@@ -9,7 +9,14 @@ const corsHeaders = {
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
-const normalizePhone = (value: string) => value.trim().replace(/[\s()-]/g, "");
+const normalizePhone = (value: string): string | null => {
+  const digits = value.replace(/\D/g, "");
+  let normalized = digits;
+  if (digits.startsWith("0") && digits.length === 11) normalized = "234" + digits.slice(1);
+  else if (digits.startsWith("234") && digits.length === 13) normalized = digits;
+  else if (digits.length === 10) normalized = "234" + digits;
+  return /^234[789][01]\d{8}$/.test(normalized) ? normalized : null;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -21,18 +28,22 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const reference = String(body?.order_reference || "").trim().toUpperCase();
     const phone = normalizePhone(String(body?.phone || ""));
-    if (!/^KNX-[A-F0-9]{16}$/.test(reference) || phone.length < 7 || phone.length > 30) {
-      return reply({ error: "Enter your order reference and phone number." }, 400);
+    if (!/^KNX-[A-F0-9]{16}$/.test(reference) || !phone) {
+      return reply({ error: "Enter a valid order reference and Nigerian phone number." }, 400);
     }
     const supabase = createClient(url, key);
+    // Look up by reference, then compare canonical phone numbers so older
+    // orders saved as 0XXXXXXXXXX still match +234XXXXXXXXXX.
     const { data: order, error } = await supabase.from("orders")
-      .select("order_reference,customer_name,created_at,status,payment_status,payment_submitted_at,payment_review_note")
-      .eq("order_reference", reference).eq("customer_phone", phone).maybeSingle();
+      .select("id,order_reference,customer_phone,customer_name,created_at,status,payment_status,payment_submitted_at,payment_review_note")
+      .eq("order_reference", reference).maybeSingle();
     if (error) throw error;
-    if (!order) return reply({ error: "No order matched those details. Check and try again." }, 404);
+    if (!order || normalizePhone(String(order.customer_phone || "")) !== phone) {
+      return reply({ error: "No order matched those details. Check and try again." }, 404);
+    }
     const { data: items, error: itemError } = await supabase.from("order_items")
       .select("product_name,variant_label,quantity,unit_price,line_total")
-      .eq("order_id", (await supabase.from("orders").select("id").eq("order_reference", reference).eq("customer_phone", phone).single()).data?.id);
+      .eq("order_id", order.id);
     if (itemError) throw itemError;
     return reply({
       success: true,
