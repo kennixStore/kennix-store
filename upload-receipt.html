@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upload Payment Receipt | KENNIX</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:20px;background:#022c22;color:white;font-family:Arial,sans-serif}
+main{max-width:520px;margin:40px auto;padding:25px;background:#064333;border-radius:14px}
+h1{color:#d4af37;text-align:center}p{line-height:1.5;color:#eee}
+label{display:block;margin:17px 0 7px}input{width:100%;padding:13px;border-radius:7px;border:1px solid #aaa;background:white;color:#111}
+button{width:100%;padding:14px;margin-top:20px;background:#d4af37;color:#111;border:0;border-radius:7px;font-weight:bold}
+#message{overflow-wrap:anywhere}.error{color:#ff9999}.success{color:#d4af37}a{color:#d4af37}
+</style>
+</head>
+<body><main>
+<h1>KENNIX</h1>
+<h2>Upload Payment Receipt</h2>
+<p>Enter your order reference and the phone number used at checkout. Upload a JPG, PNG, WEBP or PDF receipt (maximum 5 MB).</p>
+<form id="form">
+<label for="reference">Order reference</label>
+<input id="reference" required placeholder="KNX-...">
+<label for="phone">Checkout phone number</label>
+<input id="phone" type="tel" required>
+<label for="receipt">Transfer receipt</label>
+<input id="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required>
+<button id="submit" type="submit">UPLOAD RECEIPT</button>
+</form>
+<p id="message" role="status"></p>
+<p><a href="track-order.html">Track your order</a> · <a href="index.html">Return to KENNIX</a></p>
+</main>
+<script>
+const form=document.getElementById("form");
+const message=document.getElementById("message");
+const button=document.getElementById("submit");
+form.addEventListener("submit",async event=>{
+ event.preventDefault();
+ const file=document.getElementById("receipt").files[0];
+ if(!file)return;
+ if(file.size>5*1024*1024){message.className="error";message.textContent="File must be 5 MB or smaller.";return;}
+ button.disabled=true;button.textContent="UPLOADING...";message.textContent="";
+ try{
+  const dataUrl=await new Promise((resolve,reject)=>{
+   const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error("Could not read the selected file."));reader.readAsDataURL(file);
+  });
+  const response=await fetch("https://shdstohkbpvoxjtghsob.supabase.co/functions/v1/upload-payment-proof",{
+   method:"POST",
+   headers:{"Content-Type":"application/json","apikey":"sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo"},
+   body:JSON.stringify({
+    order_reference:document.getElementById("reference").value.trim(),
+    phone:document.getElementById("phone").value.trim(),
+    mime_type:file.type,
+    file_base64:String(dataUrl).split(",")[1]
+   })
+  });
+  const result=await response.json();
+  if(!response.ok||!result.success)throw new Error(result.error||"Upload failed.");
+  message.className="success";message.textContent="Receipt uploaded successfully. Your payment is now under review.";
+ }catch(error){message.className="error";message.textContent=error.message||"Upload failed. Please try again.";}
+ finally{button.disabled=false;button.textContent="UPLOAD RECEIPT";}
+});
+</script></body></html>
