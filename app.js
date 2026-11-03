@@ -77,7 +77,7 @@ function openCheckoutForm(){
    const orderReference=String(data.order_reference);
    panel.innerHTML=`<section class="checkout-form transfer-instructions">
     <h3>Order created</h3>
-    <p>Your order reference:</p><h2 id="created-order-reference">${orderReference}</h2>
+    <p>Your order reference:</p><div class="order-reference-row"><h2 id="created-order-reference">${orderReference}</h2><button type="button" id="copy-order-reference">COPY KNX CODE</button></div>
     <p>Subtotal: <strong>${money(data.subtotal)}</strong></p>
     <p>First-purchase discount: <strong>−${money(data.discount_amount)}</strong></p>
     <p>Delivery: <strong>FREE</strong></p>
@@ -100,6 +100,11 @@ function openCheckoutForm(){
     <p>Need help? WhatsApp: <a href="https://wa.me/2349135102119" target="_blank" rel="noopener">Contact KENNIX</a></p>
     <button class="primary-btn" type="button" id="transfer-done">DONE</button>
    </section>`;
+
+   panel.querySelector("#copy-order-reference").addEventListener("click",async()=>{
+    try{await navigator.clipboard.writeText(orderReference);toast("KNX code copied.");}
+    catch{toast("Please copy the KNX code manually.");}
+   });
    panel.querySelector("#copy-account-number").addEventListener("click",async()=>{
     try{await navigator.clipboard.writeText(String(data.payment.account_number));toast("Account number copied.");}
     catch{toast("Please copy the account number manually.");}
