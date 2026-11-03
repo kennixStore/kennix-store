@@ -110,13 +110,13 @@ Deno.serve(async (req) => {
 
     const phone = normalizePhone(customer.phone);
     if (!phone) return reply({ error: "Enter a valid Nigerian phone number, e.g. +2349135102119." }, 400);
+    const phoneFormats = [phone, "0" + phone.slice(3), "+" + phone];
     const { data: previousPaidOrders, error: historyError } = await supabase
-      .from("orders").select("customer_phone").eq("payment_status", "paid");
+      .from("orders").select("id").eq("payment_status", "paid")
+      .in("customer_phone", phoneFormats).limit(1);
     if (historyError) throw historyError;
 
-    const isFirstPurchase = !(previousPaidOrders || []).some((previous) =>
-      normalizePhone(String(previous.customer_phone || "")) === phone
-    );
+    const isFirstPurchase = !previousPaidOrders?.length;
     const eligibleSubtotal = cleanItems
       .filter((item) => item.promo_eligible)
       .reduce((sum, item) => sum + item.line_total, 0);
