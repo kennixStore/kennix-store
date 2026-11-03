@@ -53,13 +53,14 @@ Deno.serve(async (req) => {
       }
 
       const { data: product, error: productError } = await supabase
-        .from("products").select('id, "Name", "Price", "Is_active"')
+        .from("products").select('id, "Name", "Price", "Is_active", compare_at_price')
         .eq("id", productId).single();
       if (productError || !product || product["Is_active"] !== true) {
         return reply({ error: "A product in your bag is unavailable." }, 400);
       }
 
       let price = Number(product["Price"]);
+      let compareAtPrice = product.compare_at_price === null ? null : Number(product.compare_at_price);
       let variantLabel: string | null = null;
 
       if (variantId === null) {
@@ -71,12 +72,13 @@ Deno.serve(async (req) => {
       } else {
         const { data: variant, error } = await supabase
           .from("product_variants")
-          .select("id, color, size, stock_quantity, price, is_active")
+          .select("id, color, size, stock_quantity, price, compare_at_price, is_active")
           .eq("id", variantId).eq("product_id", productId).single();
         if (error || !variant || variant.is_active !== true || Number(variant.stock_quantity) < quantity) {
           return reply({ error: `The selected option for ${product["Name"]} is unavailable or has insufficient stock.` }, 400);
         }
         if (variant.price !== null) price = Number(variant.price);
+        if (variant.compare_at_price !== null) compareAtPrice = Number(variant.compare_at_price);
         variantLabel = [variant.color, variant.size].filter(Boolean).join(" / ");
       }
 
@@ -88,11 +90,42 @@ Deno.serve(async (req) => {
         product_id: productId, variant_id: variantId,
         product_name: product["Name"], variant_label: variantLabel,
         quantity, unit_price: price, line_total: lineTotal,
+        promo_eligible: !(compareAtPrice !== null && Number.isFinite(compareAtPrice) && compareAtPrice > price),
       });
     }
 
     total = Math.round(total * 100) / 100;
     if (!Number.isFinite(total) || total <= 0) return reply({ error: "Invalid order total." }, 400);
+
+    const phone = customer.phone.trim().replace(/[\\s()-]/g, "");
+    const { data: previousPaidOrders, error: historyError } = await supabase
+      .from("orders").select("id").eq("customer_phone", phone)
+      .eq("payment_status", "paid").limit(1);
+    if (historyError) throw historyError;
+
+    const isFirstPurchase = !previousPaidOrders?.length;
+    const eligibleSubtotal = cleanItems
+      .filter((item) => item.promo_eligible)
+      .reduce((sum, item) => sum + item.line_total, 0);
+    const discountAmount = isFirstPurchase
+      ? Math.round(eligibleSubtotal * 0.13 * 100) / 100
+      : 0;
+    const finalTotal = Math.round((total - discountAmount) * 100) / 100;
+    if (finalTotal <= 0) return reply({ error: "Invalid discounted order total." }, 400);
+
+    // Allocate the first-order discount proportionally across eligible order lines.
+    let discountRemaining = discountAmount;
+    const eligibleLines = cleanItems.filter((item) => item.promo_eligible);
+    for (let index = 0; index < eligibleLines.length; index++) {
+      const item = eligibleLines[index];
+      const lineDiscount = index === eligibleLines.length - 1
+        ? discountRemaining
+        : Math.round((discountAmount * item.line_total / eligibleSubtotal) * 100) / 100;
+      discountRemaining = Math.round((discountRemaining - lineDiscount) * 100) / 100;
+      item.line_total = Math.round((item.line_total - lineDiscount) * 100) / 100;
+      item.unit_price = Math.round((item.line_total / item.quantity) * 100) / 100;
+    }
+    for (const item of cleanItems) delete item.promo_eligible;
 
     const reference = `KNX-${crypto.randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase()}`;
     const address = [customer.address.trim(), customer.city.trim(), customer.state.trim(),
@@ -101,13 +134,15 @@ Deno.serve(async (req) => {
 
     const { data: order, error: orderError } = await supabase.from("orders").insert({
       customer_name: customer.name.trim().slice(0, 120),
-      customer_phone: customer.phone.trim().slice(0, 30),
+      customer_phone: phone.slice(0, 30),
       customer_email: customer.email.trim().toLowerCase(),
       delivery_address: address.slice(0, 1000),
       product_name: cleanItems.map((item) => item.product_name).join(", ").slice(0, 1000),
       quantity: totalQuantity,
-      unit_price: Math.round((total / totalQuantity) * 100) / 100,
-      total_amount: total,
+      unit_price: Math.round((finalTotal / totalQuantity) * 100) / 100,
+      total_amount: finalTotal,
+      discount_amount: discountAmount,
+      delivery_fee: 0,
       status: "Pending",
       order_reference: reference,
       payment_reference: reference,
@@ -133,7 +168,11 @@ Deno.serve(async (req) => {
       success: true,
       order_id: order.id,
       order_reference: reference,
-      amount: total,
+      amount: finalTotal,
+      subtotal: total,
+      discount_amount: discountAmount,
+      first_purchase_offer: isFirstPurchase,
+      delivery_fee: 0,
       payment_status: "pending",
       payment: {
         bank: "OPay",
