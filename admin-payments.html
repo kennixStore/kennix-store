@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KENNIX | Payment Reviews</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#022c22;color:#fff;font-family:Arial,sans-serif;padding:20px}
+.container{max-width:900px;margin:auto}
+h1{color:#d4af37}
+.card{background:#073b2e;border:1px solid #315c4e;border-radius:12px;padding:18px;margin:16px 0}
+input{width:100%;padding:13px;margin:8px 0;border-radius:7px;border:1px solid #777}
+button,.btn{background:#d4af37;color:#022c22;border:0;padding:11px 15px;border-radius:7px;font-weight:bold;cursor:pointer;text-decoration:none;display:inline-block;margin:5px 3px}
+.reject{background:#b83232;color:white}
+small{color:#ccc}
+.status{color:#d4af37;font-weight:bold}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>KENNIX Payment Reviews</h1>
+<p>Review customer payment receipts and update payment status.</p>
+<a class="btn" href="admin-dashboard.html">Back to Dashboard</a>
+
+<div class="card" id="login-box">
+<h3>Admin Login</h3>
+<input id="email" type="email" placeholder="Admin email">
+<input id="password" type="password" placeholder="Password">
+<button id="login">Login</button>
+<p id="login-message"></p>
+</div>
+
+<div id="dashboard" class="hidden">
+<button id="refresh">Refresh Orders</button>
+<button id="logout">Logout</button>
+<p id="message"></p>
+<div id="orders"></div>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
+const ADMIN_EMAIL = "kennix2027@gmail.com";
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const loginBox = document.getElementById("login-box");
+const dashboard = document.getElementById("dashboard");
+const message = document.getElementById("message");
+const ordersBox = document.getElementById("orders");
+
+document.getElementById("login").onclick = async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  const {data,error} = await db.auth.signInWithPassword({email,password});
+
+  if(error){
+    document.getElementById("login-message").textContent = error.message;
+    return;
+  }
+
+  if(data.user.email.toLowerCase() !== ADMIN_EMAIL){
+    await db.auth.signOut();
+    document.getElementById("login-message").textContent = "This account is not authorised.";
+    return;
+  }
+
+  await showDashboard();
+};
+
+async function showDashboard(){
+  const {data:{session}} = await db.auth.getSession();
+
+  if(!session || session.user.email.toLowerCase() !== ADMIN_EMAIL){
+    loginBox.classList.remove("hidden");
+    dashboard.classList.add("hidden");
+    return;
+  }
+
+  loginBox.classList.add("hidden");
+  dashboard.classList.remove("hidden");
+  await loadOrders();
+}
+
+async function loadOrders(){
+  message.textContent = "Loading orders...";
+  ordersBox.innerHTML = "";
+
+  const {data,error} = await db
+    .from("orders")
+    .select("id,order_reference,customer_name,created_at,status,payment_status,payment_proof_path,payment_submitted_at,payment_review_note,total_amount")
+    .order("created_at",{ascending:false});
+
+  if(error){
+    message.textContent = "Could not load orders: " + error.message;
+    return;
+  }
+
+  message.textContent = data.length + " orders found.";
+
+  if(!data.length){
+    ordersBox.textContent = "No orders found.";
+    return;
+  }
+
+  for(const order of data){
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const title = document.createElement("h3");
+    title.textContent = order.order_reference || "Order";
+    card.appendChild(title);
+
+    const details = document.createElement("p");
+    details.innerHTML =
+      "Customer: " + escapeHTML(order.customer_name || "N/A") +
+      "<br>Amount: ₦" + Number(order.total_amount || 0).toLocaleString() +
+      "<br>Order status: " + escapeHTML(order.status || "Pending") +
+      "<br>Payment status: <span class='status'>" +
+      escapeHTML(order.payment_status || "pending") + "</span>";
+    card.appendChild(details);
+
+    if(order.payment_submitted_at){
+      const submitted = document.createElement("p");
+      submitted.textContent = "Receipt submitted: " + new Date(order.payment_submitted_at).toLocaleString();
+      card.appendChild(submitted);
+    }
+
+    if(order.payment_proof_path){
+      const receiptButton = document.createElement("button");
+      receiptButton.textContent = "View Receipt";
+      receiptButton.onclick = async () => {
+        receiptButton.disabled = true;
+        receiptButton.textContent = "Opening...";
+
+        const {data,error} = await db.storage
+          .from("payment-proofs")
+          .createSignedUrl(order.payment_proof_path,60);
+
+        receiptButton.disabled = false;
+        receiptButton.textContent = "View Receipt";
+
+        if(error){
+          alert("Could not open receipt: " + error.message);
+          return;
+        }
+
+        window.open(data.signedUrl,"_blank");
+      };
+      card.appendChild(receiptButton);
+    } else {
+      const noReceipt = document.createElement("p");
+      noReceipt.textContent = "No receipt uploaded yet.";
+      card.appendChild(noReceipt);
+    }
+
+    if(order.payment_review_note){
+      const note = document.createElement("p");
+      note.textContent = "Review note: " + order.payment_review_note;
+      card.appendChild(note);
+    }
+
+    if(order.payment_proof_path && order.payment_status !== "paid"){
+      const approve = document.createElement("button");
+      approve.textContent = "Approve Payment";
+      approve.onclick = () => updatePayment(order.id,"paid","");
+      card.appendChild(approve);
+
+      const reject = document.createElement("button");
+      reject.textContent = "Reject Payment";
+      reject.className = "reject";
+      reject.onclick = () => {
+        const reason = prompt("Enter the reason for rejecting this receipt:");
+        if(reason && reason.trim()){
+          updatePayment(order.id,"rejected",reason.trim());
+        }
+      };
+      card.appendChild(reject);
+    }
+
+    ordersBox.appendChild(card);
+  }
+}
+
+async function updatePayment(orderId,status,note){
+  if(!confirm("Confirm that you want to mark this payment as " + status + "?")) return;
+
+  message.textContent = "Updating payment...";
+
+  const {error} = await db.from("orders").update({
+    payment_status: status,
+    payment_reviewed_at: new Date().toISOString(),
+    payment_review_note: note || null
+  }).eq("id",orderId);
+
+  if(error){
+    message.textContent = "Update failed: " + error.message;
+    return;
+  }
+
+  message.textContent = "Payment status updated.";
+  await loadOrders();
+}
+
+function escapeHTML(value){
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[char]);
+}
+
+document.getElementById("refresh").onclick = loadOrders;
+document.getElementById("logout").onclick = async () => {
+  await db.auth.signOut();
+  dashboard.classList.add("hidden");
+  loginBox.classList.remove("hidden");
+};
+
+showDashboard();
+</script>
+</body>
+  </html>
