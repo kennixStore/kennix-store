@@ -47,3 +47,17 @@
  html{scroll-behavior:auto}
  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+
+/* KENNIX mobile checkout scrolling fix */
+.cart-items{min-height:0}
+.drawer-bottom{min-height:0;max-height:75dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex-shrink:1;padding-bottom:calc(15px + env(safe-area-inset-bottom))}
+#checkout-panel{min-width:0;max-width:100%;overflow-wrap:anywhere}
+#checkout-panel .checkout-form{min-width:0;max-width:100%}
+#kennix-receipt-form{min-width:0;max-width:100%}
+#kennix-receipt-file{display:block;width:100%;max-width:100%;min-width:0;font-size:12px}
+@media(max-width:560px){
+ .cart-drawer{padding:18px;overflow:hidden}
+ .drawer-bottom{max-height:72dvh}
+ #kennix-receipt-file{font-size:11px}
+}
