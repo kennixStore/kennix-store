@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Your Order | KENNIX</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:#022c22;color:#fff;font-family:Arial,sans-serif}
+.container{max-width:520px;margin:45px auto;background:#064333;padding:25px;border-radius:14px}
+h1{color:#d4af37;text-align:center}
+.subtitle{text-align:center;color:#ddd;line-height:1.5}
+label{display:block;margin-top:18px;margin-bottom:7px}
+input{width:100%;padding:14px;border:1px solid #777;border-radius:7px;background:#fff;color:#111;font-size:16px}
+button{width:100%;padding:14px;margin-top:20px;border:0;border-radius:7px;background:#d4af37;color:#111;font-weight:bold;font-size:16px}
+#result{margin-top:25px}
+.card{background:#022c22;padding:16px;border-radius:9px;margin-top:12px}
+.status{color:#d4af37;font-weight:bold}
+.item{padding:10px 0;border-bottom:1px solid #34594e}
+.error{color:#ff9999}
+a{color:#d4af37}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>KENNIX</h1>
+<p class="subtitle">Track your order and check your payment status.</p>
+
+<form id="trackingForm">
+<label>Order Reference</label>
+<input id="reference" placeholder="KNX-..." required>
+
+<label>Phone Number Used During Checkout</label>
+<input id="phone" type="tel" placeholder="Your phone number" required>
+
+<button id="trackButton" type="submit">TRACK MY ORDER</button>
+</form>
+
+<div id="result"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
+
+const form = document.getElementById("trackingForm");
+const result = document.getElementById("result");
+const button = document.getElementById("trackButton");
+
+const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+
+const paymentLabel = status => ({
+  pending:"Pending Payment",
+  under_review:"Payment Under Review",
+  paid:"Payment Approved",
+  rejected:"Payment Rejected"
+}[status] || status);
+
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+
+  button.disabled = true;
+  button.textContent = "Checking...";
+  result.innerHTML = "";
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/track-order`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "apikey":SUPABASE_KEY
+        },
+        body:JSON.stringify({
+          order_reference:document.getElementById("reference").value.trim(),
+          phone:document.getElementById("phone").value.trim()
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Unable to find your order.");
+    }
+
+    const order = data.order;
+
+    const items = (order.items || []).map(item => `
+      <div class="item">
+        <strong>${escapeHTML(item.product_name)}</strong><br>
+        ${escapeHTML(item.variant_label || "")}<br>
+        Quantity: ${escapeHTML(item.quantity)}
+      </div>
+    `).join("");
+
+    result.innerHTML = `
+      <div class="card">
+        <h3>Order Details</h3>
+        <p>Reference: <strong>${escapeHTML(order.reference)}</strong></p>
+        <p>Customer: ${escapeHTML(order.customer_name)}</p>
+        <p>Order Status: <span class="status">${escapeHTML(order.order_status)}</span></p>
+        <p>Payment Status: <span class="status">${escapeHTML(paymentLabel(order.payment_status))}</span></p>
+        ${order.payment_review_note ? `<p>Admin note: ${escapeHTML(order.payment_review_note)}</p>` : ""}
+        <h3>Items Ordered</h3>
+        ${items || "No items found."}
+      </div>
+    `;
+
+  } catch(error) {
+    result.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "TRACK MY ORDER";
+  }
+});
+
+const params = new URLSearchParams(window.location.search);
+if (params.get("reference")) {
+  document.getElementById("reference").value = params.get("reference");
+}
+</script>
+</body>
+</html>
