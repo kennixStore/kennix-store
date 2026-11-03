@@ -16,6 +16,17 @@ button{width:100%;padding:14px;margin-top:20px;border:0;border-radius:7px;backgr
 #result{margin-top:25px}
 .card{background:#022c22;padding:16px;border-radius:9px;margin-top:12px}
 .status{color:#d4af37;font-weight:bold}
+.timeline{margin:18px 0 22px;padding-left:4px}
+.timeline h3{margin-bottom:14px}
+.step{display:flex;gap:12px;position:relative;min-height:58px}
+.step:not(:last-child):before{content:"";position:absolute;left:11px;top:25px;height:calc(100% - 1px);border-left:2px solid #45685d}
+.step-dot{z-index:1;flex:0 0 24px;height:24px;border-radius:50%;border:2px solid #789087;background:#022c22}
+.step.done .step-dot,.step.current .step-dot{border-color:#d4af37;background:#d4af37}
+.step.current .step-dot{box-shadow:0 0 0 4px #d4af3733}
+.step-text{padding:2px 0 16px}
+.step-text strong{display:block}
+.step-text small{color:#c7d5ce}
+.step.cancelled .step-dot{border-color:#ff7777;background:#ff7777}
 .item{padding:10px 0;border-bottom:1px solid #34594e}
 .error{color:#ff9999}
 a{color:#d4af37}
@@ -88,7 +99,37 @@ form.addEventListener("submit", async e => {
     }
 
     const order = data.order;
-
+    const status = String(order.order_status || "Pending").toLowerCase();
+    const paymentPaid = order.payment_status === "paid";
+    const stages = [
+      {name:"Order Placed", detail:"We have received your order."},
+      {name:"Payment Confirmed", detail:"Your payment has been approved."},
+      {name:"Processing", detail:"Your order is being prepared."},
+      {name:"Shipped", detail:"Your order has been dispatched."},
+      {name:"Delivered", detail:"Your order has been delivered."}
+    ];
+    const progress = status === "delivered" ? 4 :
+      status === "shipped" ? 3 :
+      status === "processing" ? 2 : 0;
+    const cancelled = status === "cancelled";
+    const paymentConfirmed = paymentPaid || progress >= 2;
+    const timeline = stages.map((stage,index) => {
+      const done = index === 0 || (index === 1 && paymentConfirmed) || index <= progress;
+      const current = !cancelled && !done && (
+        (index === 1 && !paymentConfirmed) ||
+        (index === 2 && paymentConfirmed && progress < 2) ||
+        (index === 3 && progress === 2) ||
+        (index === 4 && progress === 3)
+      );
+      return `
+        <div class="step ${done ? "done" : ""} ${current ? "current" : ""}">
+          <span class="step-dot"></span>
+          <div class="step-text">
+            <strong>${escapeHTML(stage.name)}</strong>
+            <small>${done ? "Completed" : current ? stage.detail : "Waiting for previous stage"}</small>
+          </div>
+        </div>`;
+    }).join("");
     const items = (order.items || []).map(item => `
       <div class="item">
         <strong>${escapeHTML(item.product_name)}</strong><br>
@@ -99,6 +140,9 @@ form.addEventListener("submit", async e => {
 
     result.innerHTML = `
       <div class="card">
+        <h3>Order Progress</h3>
+        ${cancelled ? '<p class="error"><strong>This order has been cancelled.</strong></p>' : ""}
+        <div class="timeline">${timeline}</div>
         <h3>Order Details</h3>
         <p>Reference: <strong>${escapeHTML(order.reference)}</strong></p>
         <p>Customer: ${escapeHTML(order.customer_name)}</p>
