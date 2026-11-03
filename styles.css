@@ -80,3 +80,11 @@
 .kennix-delivery-form>#transfer-submit,.kennix-delivery-form>#checkout-back{width:100%;margin:0}
 .kennix-delivery-form .checkout-error{margin:0}
 @media(max-width:560px){.kennix-delivery-form{gap:13px}.checkout-field-group{padding:12px;gap:10px}.checkout-field-grid{grid-template-columns:1fr 1fr}.checkout-form-heading h3{font-size:21px}}
+
+
+/* KENNIX order tracking navigation */
+.track-nav-link{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid var(--gold);border-radius:3px;background:var(--green);color:#fff!important;font-size:10px;font-weight:800;letter-spacing:.7px}.track-nav-link:hover{background:#174b39;box-shadow:0 5px 14px #022c2220}.footer-track-link{display:inline-block;margin:0 18px 14px 0;color:var(--green);font-size:11px;font-weight:800}.footer-track-link:hover{text-decoration:underline}@media(max-width:560px){nav .track-nav-link{align-self:flex-start;padding:12px 18px}}
+
+
+/* KENNIX checkout tracking button */
+.checkout-track-callout{margin:18px 0;padding:16px;border:1px solid #d4af37;background:#f7f7f2;border-radius:4px}.checkout-track-callout p{margin:0 0 11px;font-size:12px;font-weight:700;color:#022c22}.checkout-track-button{display:flex;justify-content:center;align-items:center;width:100%;text-align:center;min-height:46px}
