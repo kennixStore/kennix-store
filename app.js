@@ -64,8 +64,14 @@ function openCheckoutForm(){
   };
   const items=cart.map(item=>({product_id:item.id,variant_id:item.variantId,quantity:item.quantity}));
   try{
-   const {data,error}=await getDb().functions.invoke("create-manual-transfer-order",{body:{customer,items}});
-   if(error)throw error;
+   const response=await fetch(`${SUPABASE_URL}/functions/v1/create-manual-transfer-order`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify({customer,items})
+   });
+   let data;
+   try{data=await response.json()}catch{throw new Error(`Checkout service returned an invalid response (${response.status}).`)}
+   if(!response.ok)throw new Error(data?.error||`Checkout request failed (${response.status}).`);
    if(!data?.success||!data.order_reference||!data.payment)throw new Error(data?.error||"Your order could not be created. Please try again.");
    const amount=money(data.amount);
    panel.innerHTML=`<section class="checkout-form transfer-instructions">
