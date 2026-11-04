@@ -44,7 +44,6 @@ small{color:#ccc}
 <script>
 const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
-const ADMIN_EMAIL = "kennix2027@gmail.com";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const loginBox = document.getElementById("login-box");
@@ -63,7 +62,8 @@ document.getElementById("login").onclick = async () => {
     return;
   }
 
-  if(data.user.email.toLowerCase() !== ADMIN_EMAIL){
+  const {data: allowed, error: adminError} = await db.rpc("is_kennix_admin");
+  if(adminError || allowed !== true){
     await db.auth.signOut();
     document.getElementById("login-message").textContent = "This account is not authorised.";
     return;
@@ -73,11 +73,20 @@ document.getElementById("login").onclick = async () => {
 };
 
 async function showDashboard(){
-  const {data:{session}} = await db.auth.getSession();
+  const {data:{session},error:sessionError} = await db.auth.getSession();
 
-  if(!session || session.user.email.toLowerCase() !== ADMIN_EMAIL){
+  if(!session || sessionError){
     loginBox.classList.remove("hidden");
     dashboard.classList.add("hidden");
+    return;
+  }
+
+  const {data: allowed,error:adminError} = await db.rpc("is_kennix_admin");
+  if(adminError || allowed !== true){
+    await db.auth.signOut();
+    loginBox.classList.remove("hidden");
+    dashboard.classList.add("hidden");
+    document.getElementById("login-message").textContent = "This account is not authorised.";
     return;
   }
 
