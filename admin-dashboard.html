@@ -77,6 +77,14 @@ async function checkLogin() {
     location.href = "admin.html";
     return false;
   }
+
+  const { data: allowed, error: adminError } = await db.rpc("is_kennix_admin");
+  if (adminError || allowed !== true) {
+    await db.auth.signOut();
+    location.href = "admin.html";
+    return false;
+  }
+
   return true;
 }
 
