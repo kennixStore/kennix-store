@@ -696,6 +696,7 @@ showAdminPanel("overview");
 
 (async () => {
   if (await checkLogin()) {
+    loadDashboardStats();
     loadProducts();
     loadOrders();
     await loadVariantProducts();
