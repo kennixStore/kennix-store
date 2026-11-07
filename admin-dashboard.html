@@ -97,17 +97,32 @@ Warranty: 6 months"></textarea>
 </section>
 <section class="card admin-panel" id="review-moderation" data-admin-panel="reviews" hidden><h2>Customer Reviews</h2><p class="small">Review customer submissions and approve suitable reviews before they appear publicly.</p><button id="refreshReviews" type="button">Refresh Reviews</button><div id="reviewQueue">Loading reviews...</div></section>
 <section class="card admin-panel" id="variant-inventory" data-admin-panel="options" hidden>
-<h2>Flexible Product Inventory</h2>
-<p class="small">Use this for clothing sizes, phone storage, RAM configurations, power-bank capacity, Wi-Fi models and other product options. Add one option at a time.</p>
-<form id="variantForm">
-<label for="variantProduct">Product</label><select id="variantProduct" required><option value="">Loading products...</option></select>
-<label for="optionGroup">Option group</label><input id="optionGroup" placeholder="Examples: Storage, RAM, Capacity, Colour / Size" required maxlength="60">
-<label for="optionValue">Option value</label><input id="optionValue" placeholder="Examples: 128GB, 8GB, 20,000mAh, Black / XL" required maxlength="100">
-<label for="variantStock">Available quantity</label><input id="variantStock" type="number" min="0" step="1" value="0" required>
-<label for="variantPrice">Special selling price (optional)</label><input id="variantPrice" type="number" min="0" step="1" placeholder="Leave blank to use product price">
-<button id="saveVariant" type="submit">Save Product Option</button>
-<p id="variantMessage" class="small"></p>
-</form>
+<h2>Product Options &amp; Stock</h2>
+<p class="small">Choose the section that matches the product. Fashion products have simple colour, size and material options. Other products have flexible specifications such as storage, RAM, capacity and model.</p>
+<div class="card" style="border:1px solid #e4e9e3;margin:14px 0">
+<h3>👕 Clothes, Shoes &amp; Bags</h3>
+<p class="small">This list shows only products in Clothes, Shoes and Bags.</p>
+<form id="fashionVariantForm">
+<label for="fashionVariantProduct">Fashion product</label><select id="fashionVariantProduct" required><option value="">Loading fashion products...</option></select>
+<label for="fashionOptionGroup">What are you adding?</label><select id="fashionOptionGroup" required>
+<option value="">Choose option type</option><option>Colour</option><option>Size</option><option>Material</option><option>Style</option><option>Design</option><option>Other</option>
+</select>
+<label for="fashionOptionValue">Option details</label><input id="fashionOptionValue" placeholder="Examples: Black, XL, UK 靴 42, Cotton" required maxlength="100">
+<label for="fashionVariantStock">Available quantity</label><input id="fashionVariantStock" type="number" min="0" step="1" value="0" required>
+<label for="fashionVariantPrice">Special selling price (optional)</label><input id="fashionVariantPrice" type="number" min="0" step="1" placeholder="Leave blank to use product price">
+<button type="submit">Save Fashion Option</button><p id="fashionVariantMessage" class="small"></p>
+</form></div>
+<div class="card" style="border:1px solid #e4e9e3;margin:14px 0">
+<h3>📱 Other Products &amp; Appliances</h3>
+<p class="small">For phones, accessories, internet devices, power products and appliances. Enter the specification name and its exact value.</p>
+<form id="generalVariantForm">
+<label for="generalVariantProduct">Product</label><select id="generalVariantProduct" required><option value="">Loading other products...</option></select>
+<label for="generalOptionGroup">Specification / option name</label><input id="generalOptionGroup" placeholder="Examples: Storage, RAM, Battery Capacity, Model, Wattage, Network" required maxlength="60">
+<label for="generalOptionValue">Specification / option value</label><input id="generalOptionValue" placeholder="Examples: 128GB, 8GB, 20,000mAh, 1.5kW, 4G" required maxlength="100">
+<label for="generalVariantStock">Available quantity</label><input id="generalVariantStock" type="number" min="0" step="1" value="0" required>
+<label for="generalVariantPrice">Special selling price (optional)</label><input id="generalVariantPrice" type="number" min="0" step="1" placeholder="Leave blank to use product price">
+<button type="submit">Save Product Specification</button><p id="generalVariantMessage" class="small"></p>
+</form></div>
 <h3>Existing Stock Options</h3><div id="variantList">Loading inventory...</div>
 </section></div>
 <script>
@@ -516,18 +531,25 @@ async function loadReviewQueue(){
  });
 }
 document.getElementById("refreshReviews")?.addEventListener("click",loadReviewQueue);
-/* FLEXIBLE PRODUCT INVENTORY */
-const variantForm=document.getElementById("variantForm");
-const variantMessage=document.getElementById("variantMessage");
-const variantProduct=document.getElementById("variantProduct");
+/* PRODUCT OPTIONS & INVENTORY */
 const variantList=document.getElementById("variantList");
 let adminProducts=[];
+const fashionCategories=["Clothes","Shoes","Bags"];
 async function loadVariantProducts(){
- const {data,error}=await db.from("products").select("id,Name,Price").order("Name");
- if(error){variantProduct.innerHTML='<option value="">Could not load products</option>';variantMessage.textContent=error.message;return}
- adminProducts=data||[];variantProduct.replaceChildren();
- const first=document.createElement("option");first.value="";first.textContent="Choose a product";variantProduct.append(first);
- adminProducts.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.Name||("Product #"+p.id);variantProduct.append(o)});
+ const {data,error}=await db.from("products").select("id,Name,Price,Category").order("Name");
+ if(error){
+  ["fashionVariantProduct","generalVariantProduct"].forEach(id=>{document.getElementById(id).innerHTML='<option value="">Could not load products</option>'});
+  return;
+ }
+ adminProducts=data||[];
+ const fashion=adminProducts.filter(p=>fashionCategories.includes((p.Category||"").trim()));
+ const general=adminProducts.filter(p=>!fashionCategories.includes((p.Category||"").trim()));
+ [["fashionVariantProduct",fashion,"No clothes, shoes or bags found yet."],["generalVariantProduct",general,"No other products found yet."]].forEach(([id,items,empty])=>{
+  const select=document.getElementById(id);select.replaceChildren();
+  const first=document.createElement("option");first.value="";first.textContent="Choose a product";select.append(first);
+  if(!items.length){const option=document.createElement("option");option.disabled=true;option.textContent=empty;select.append(option)}
+  items.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.Name||("Product #"+p.id);select.append(o)});
+ });
 }
 async function loadVariantInventory(){
  variantList.textContent="Loading inventory...";
@@ -555,19 +577,32 @@ async function loadVariantInventory(){
   row.append(title,meta,edit,toggle,remove);variantList.append(row);
  });
 }
-variantForm.addEventListener("submit",async event=>{
- event.preventDefault();if(!(await checkLogin()))return;
- const product_id=Number(variantProduct.value),group=document.getElementById("optionGroup").value.trim(),value=document.getElementById("optionValue").value.trim();
- const stock_quantity=Number(document.getElementById("variantStock").value),priceText=document.getElementById("variantPrice").value.trim(),price=priceText===""?null:Number(priceText);
- if(!product_id||!group||!value){variantMessage.textContent="Choose a product and enter an option group and value.";return}
- if(!Number.isInteger(stock_quantity)||stock_quantity<0||(price!==null&&(!Number.isFinite(price)||price<0))){variantMessage.textContent="Check the stock quantity and selling price.";return}
- const save=document.getElementById("saveVariant");save.disabled=true;save.textContent="Saving...";
- const {error}=await db.from("product_variants").upsert([{product_id,color:group,size:value,stock_quantity,price,compare_at_price:null,is_active:true}],{onConflict:"product_id,color,size"});
- save.disabled=false;save.textContent="Save Product Option";
- if(error){variantMessage.textContent="Save failed: "+error.message;return}
- variantMessage.textContent="Product option saved.";document.getElementById("optionValue").value="";document.getElementById("variantStock").value="0";document.getElementById("variantPrice").value="";
- await loadVariantInventory();
-});
+function connectOptionForm(formId,config){
+ const form=document.getElementById(formId);
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();if(!(await checkLogin()))return;
+  const product_id=Number(document.getElementById(config.product).value);
+  const group=document.getElementById(config.group).value.trim();
+  const value=document.getElementById(config.value).value.trim();
+  const stock_quantity=Number(document.getElementById(config.stock).value);
+  const priceText=document.getElementById(config.price).value.trim();
+  const price=priceText===""?null:Number(priceText);
+  const message=document.getElementById(config.message);
+  if(!product_id||!group||!value){message.textContent="Choose a product and complete the option details.";return}
+  if(!Number.isInteger(stock_quantity)||stock_quantity<0||(price!==null&&(!Number.isFinite(price)||price<0))){message.textContent="Check the stock quantity and selling price.";return}
+  const button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent="Saving...";
+  const {error}=await db.from("product_variants").upsert([{product_id,color:group,size:value,stock_quantity,price,compare_at_price:null,is_active:true}],{onConflict:"product_id,color,size"});
+  button.disabled=false;button.textContent=config.button;
+  if(error){message.textContent="Save failed: "+error.message;return}
+  message.textContent="Saved successfully.";
+  document.getElementById(config.value).value="";
+  document.getElementById(config.stock).value="0";
+  document.getElementById(config.price).value="";
+  await loadVariantInventory();
+ });
+}
+connectOptionForm("fashionVariantForm",{product:"fashionVariantProduct",group:"fashionOptionGroup",value:"fashionOptionValue",stock:"fashionVariantStock",price:"fashionVariantPrice",message:"fashionVariantMessage",button:"Save Fashion Option"});
+connectOptionForm("generalVariantForm",{product:"generalVariantProduct",group:"generalOptionGroup",value:"generalOptionValue",stock:"generalVariantStock",price:"generalVariantPrice",message:"generalVariantMessage",button:"Save Product Specification"});
 /* ADMIN CATEGORY NAVIGATION */
 function showAdminPanel(name){
  document.querySelectorAll("[data-admin-panel]").forEach(panel=>{panel.hidden=panel.dataset.adminPanel!==name});
