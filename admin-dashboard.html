@@ -64,17 +64,10 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <button type="button" id="refreshDashboardStats">↻ Refresh Statistics</button>
 <p id="dashboardStatsMessage" class="small" aria-live="polite">Loading store statistics...</p>
 <div class="stats-grid" id="dashboardStats">
-<div class="stat-card"><span>Total Orders</span><strong id="statTotalOrders">—</strong></div>
-<div class="stat-card"><span>Pending Payments</span><strong id="statPendingPayments">—</strong></div>
-<div class="stat-card"><span>Confirmed Payments</span><strong id="statPaidOrders">—</strong></div>
-<div class="stat-card"><span>Total Revenue</span><strong id="statRevenue">—</strong></div>
-<div class="stat-card"><span>Processing</span><strong id="statProcessing">—</strong></div>
-<div class="stat-card"><span>Shipped</span><strong id="statShipped">—</strong></div>
-<div class="stat-card"><span>Delivered</span><strong id="statDelivered">—</strong></div>
 <div class="stat-card"><span>Active Products</span><strong id="statProducts">—</strong></div>
 <div class="stat-card"><span>Low-stock Options (3 or less)</span><strong id="statLowStock">—</strong></div>
 </div>
-<p class="small">Revenue counts orders marked as paid only. Low stock counts active product options with 3 or fewer units.</p>
+<p class="small">Low stock counts active product options with 3 or fewer units.</p>
 </div>
 </section>
 <section class="card admin-panel" data-admin-panel="orders" hidden>
@@ -204,33 +197,24 @@ async function checkLogin() {
 
 /* DASHBOARD OVERVIEW STATISTICS */
 async function loadDashboardStats(){
- const message=document.getElementById("dashboardStatsMessage");
- message.textContent="Updating statistics...";
- const ids=["statTotalOrders","statPendingPayments","statPaidOrders","statRevenue","statProcessing","statShipped","statDelivered","statProducts","statLowStock"];
- ids.forEach(id=>document.getElementById(id).textContent="—");
- const [ordersResult,productsResult,stockResult]=await Promise.all([
-  db.from("orders").select("total_amount,payment_status,status"),
-  db.from("products").select("id",{count:"exact",head:true}).eq("Is_active",true),
-  db.from("product_variants").select("stock_quantity").eq("is_active",true).lte("stock_quantity",3)
- ]);
- const errors=[ordersResult.error,productsResult.error,stockResult.error].filter(Boolean);
- if(ordersResult.error){message.textContent="Could not load order statistics: "+ordersResult.error.message;return}
- const orders=ordersResult.data||[];
- const paid=orders.filter(o=>(o.payment_status||"").toLowerCase()==="paid");
- const pending=orders.filter(o=>["pending","awaiting verification","submitted"].includes((o.payment_status||"pending").toLowerCase()));
- const totalRevenue=paid.reduce((sum,o)=>sum+Number(o.total_amount||0),0);
- const countStatus=value=>orders.filter(o=>(o.status||"").toLowerCase()===value.toLowerCase()).length;
- const fmt=n=>Number(n).toLocaleString("en-NG");
- document.getElementById("statTotalOrders").textContent=fmt(orders.length);
- document.getElementById("statPendingPayments").textContent=fmt(pending.length);
- document.getElementById("statPaidOrders").textContent=fmt(paid.length);
- document.getElementById("statRevenue").textContent="₦"+fmt(totalRevenue);
- document.getElementById("statProcessing").textContent=fmt(countStatus("Processing"));
- document.getElementById("statShipped").textContent=fmt(countStatus("Shipped"));
- document.getElementById("statDelivered").textContent=fmt(countStatus("Delivered"));
- document.getElementById("statProducts").textContent=productsResult.error?"Unavailable":fmt(productsResult.count||0);
- document.getElementById("statLowStock").textContent=stockResult.error?"Unavailable":fmt((stockResult.data||[]).length);
- message.textContent=errors.length?"Some figures could not be loaded. Check the relevant table permissions.":"Statistics updated.";
+  const message=document.getElementById("dashboardStatsMessage");
+  message.textContent="Updating product statistics...";
+  document.getElementById("statProducts").textContent="—";
+  document.getElementById("statLowStock").textContent="—";
+  const [productsResult,stockResult]=await Promise.all([
+   db.from("products").select("id",{count:"exact",head:true}).eq("Is_active",true),
+   db.from("product_variants").select("stock_quantity").eq("is_active",true).lte("stock_quantity",3)
+  ]);
+  if(productsResult.error||stockResult.error){
+   message.textContent="Could not load all product statistics. Check table permissions.";
+   if(productsResult.error) message.textContent+=" Products: "+productsResult.error.message;
+   if(stockResult.error) message.textContent+=" Stock: "+stockResult.error.message;
+   return;
+  }
+  const fmt=n=>Number(n).toLocaleString("en-NG");
+  document.getElementById("statProducts").textContent=fmt(productsResult.count||0);
+  document.getElementById("statLowStock").textContent=fmt((stockResult.data||[]).length);
+  message.textContent="Product statistics updated.";
 }
 document.getElementById("refreshDashboardStats").addEventListener("click",loadDashboardStats);
 /* SUPPLIER MANAGEMENT */
