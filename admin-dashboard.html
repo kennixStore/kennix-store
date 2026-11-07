@@ -62,6 +62,7 @@ Warranty: 6 months"></textarea>
 <h2>🛍️ Your Products</h2>
 <div id="products">Loading products...</div>
 </section>
+<section class="card" id="review-moderation"><h2>Customer Reviews</h2><p class="small">Review customer submissions and approve suitable reviews before they appear publicly.</p><button id="refreshReviews" type="button">Refresh Reviews</button><div id="reviewQueue">Loading reviews...</div></section>
 <section class="card" id="variant-inventory">
 <h2>Flexible Product Inventory</h2>
 <p class="small">Use this for clothing sizes, phone storage, RAM configurations, power-bank capacity, Wi-Fi models and other product options. Add one option at a time.</p>
@@ -462,6 +463,26 @@ document.getElementById("logout").addEventListener("click", async () => {
 });
 
 
+
+/* CUSTOMER REVIEW MODERATION */
+const reviewQueue=document.getElementById("reviewQueue");
+async function loadReviewQueue(){
+ if(!reviewQueue)return;reviewQueue.textContent="Loading reviews...";
+ const {data,error}=await db.from("product_reviews").select("id,product_id,reviewer_name,rating,review_text,created_at,is_approved,is_verified_purchase").order("created_at",{ascending:false});
+ if(error){reviewQueue.textContent="Could not load reviews: "+error.message;return}
+ reviewQueue.replaceChildren();if(!data?.length){reviewQueue.textContent="No customer reviews submitted yet.";return}
+ data.forEach(r=>{
+  const product=adminProducts.find(p=>String(p.id)===String(r.product_id));
+  const row=document.createElement("div");row.className="inventory-row";
+  const title=document.createElement("strong");title.textContent=(product?.Name||("Product #"+r.product_id))+" — "+r.reviewer_name+" · "+"★".repeat(Number(r.rating));
+  const body=document.createElement("p");body.textContent=r.review_text;
+  const meta=document.createElement("small");meta.className="small";meta.textContent=new Date(r.created_at).toLocaleString("en-NG")+" · "+(r.is_approved?"Approved":"Pending approval")+" · Customer-submitted";
+  row.append(title,body,meta);
+  if(!r.is_approved){const approve=document.createElement("button");approve.textContent="Approve review";approve.onclick=async()=>{if(!(await checkLogin()))return;const {error:e}=await db.from("product_reviews").update({is_approved:true}).eq("id",r.id);if(e){alert("Could not approve: "+e.message);return}loadReviewQueue()};row.append(approve)}
+  const remove=document.createElement("button");remove.className="deleteBtn";remove.textContent="Delete review";remove.onclick=async()=>{if(!(await checkLogin()))return;if(!confirm("Delete this customer review?"))return;const {error:e}=await db.from("product_reviews").delete().eq("id",r.id);if(e){alert("Could not delete: "+e.message);return}loadReviewQueue()};row.append(remove);reviewQueue.append(row);
+ });
+}
+document.getElementById("refreshReviews")?.addEventListener("click",loadReviewQueue);
 /* FLEXIBLE PRODUCT INVENTORY */
 const variantForm=document.getElementById("variantForm");
 const variantMessage=document.getElementById("variantMessage");
@@ -522,6 +543,7 @@ variantForm.addEventListener("submit",async event=>{
     loadOrders();
     await loadVariantProducts();
     await loadVariantInventory();
+    await loadReviewQueue();
   }
 })();
 </script></body>
