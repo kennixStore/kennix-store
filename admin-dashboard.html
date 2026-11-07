@@ -716,7 +716,7 @@ document.getElementById("logout").addEventListener("click", async () => {
 const reviewQueue=document.getElementById("reviewQueue");
 async function loadReviewQueue(){
  if(!reviewQueue)return;reviewQueue.textContent="Loading reviews...";
- const {data,error}=await db.from("product_reviews").select("id,product_id,reviewer_name,rating,review_text,created_at,is_approved,is_verified_purchase").order("created_at",{ascending:false});
+ const {data,error}=await db.from("product_reviews").select("id,product_id,reviewer_name,rating,review_text,created_at,is_approved,is_verified_purchase,admin_reply,admin_reply_at").order("created_at",{ascending:false});
  if(error){reviewQueue.textContent="Could not load reviews: "+error.message;return}
  reviewQueue.replaceChildren();if(!data?.length){reviewQueue.textContent="No customer reviews submitted yet.";return}
  data.forEach(r=>{
@@ -727,6 +727,13 @@ async function loadReviewQueue(){
   const meta=document.createElement("small");meta.className="small";meta.textContent=new Date(r.created_at).toLocaleString("en-NG")+" · "+(r.is_approved?"Approved":"Pending approval")+" · Customer-submitted";
   row.append(title,body,meta);
   if(!r.is_approved){const approve=document.createElement("button");approve.textContent="Approve review";approve.onclick=async()=>{if(!(await checkLogin()))return;const {error:e}=await db.from("product_reviews").update({is_approved:true}).eq("id",r.id);if(e){alert("Could not approve: "+e.message);return}loadReviewQueue()};row.append(approve)}
+  const replyLabel=document.createElement("label");replyLabel.textContent="KENNIX reply";
+  const replyInput=document.createElement("textarea");replyInput.rows=3;replyInput.maxLength=1000;replyInput.placeholder="Write a public reply to this review...";replyInput.value=r.admin_reply||"";
+  const replyStatus=document.createElement("small");replyStatus.className="small";replyStatus.textContent=r.admin_reply_at?"Last replied: "+new Date(r.admin_reply_at).toLocaleString("en-NG"):"No reply published yet.";
+  const saveReply=document.createElement("button");saveReply.textContent=r.admin_reply?"Update KENNIX reply":"Publish KENNIX reply";
+  saveReply.onclick=async()=>{if(!(await checkLogin()))return;const reply=replyInput.value.trim();if(!reply){alert("Write a reply first. To remove an existing reply, use the clear button.");return}saveReply.disabled=true;saveReply.textContent="Saving...";const {error:e}=await db.from("product_reviews").update({admin_reply:reply,admin_reply_at:new Date().toISOString()}).eq("id",r.id);if(e){alert("Could not save reply: "+e.message);saveReply.disabled=false;saveReply.textContent=r.admin_reply?"Update KENNIX reply":"Publish KENNIX reply";return}loadReviewQueue()};
+  row.append(replyLabel,replyInput,saveReply,replyStatus);
+  if(r.admin_reply){const clearReply=document.createElement("button");clearReply.className="deleteBtn";clearReply.textContent="Remove KENNIX reply";clearReply.onclick=async()=>{if(!(await checkLogin()))return;if(!confirm("Remove the public KENNIX reply from this review?"))return;const {error:e}=await db.from("product_reviews").update({admin_reply:null,admin_reply_at:null}).eq("id",r.id);if(e){alert("Could not remove reply: "+e.message);return}loadReviewQueue()};row.append(clearReply)}
   const remove=document.createElement("button");remove.className="deleteBtn";remove.textContent="Delete review";remove.onclick=async()=>{if(!(await checkLogin()))return;if(!confirm("Delete this customer review?"))return;const {error:e}=await db.from("product_reviews").delete().eq("id",r.id);if(e){alert("Could not delete: "+e.message);return}loadReviewQueue()};row.append(remove);reviewQueue.append(row);
  });
 }
