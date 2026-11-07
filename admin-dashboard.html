@@ -23,7 +23,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 </head>
 <body><header>
 <h1>KENNIX Admin</h1>
-<p>Manage your fashion store</p>
+<p>Manage your multi-category store</p>
 <button id="logout">Log Out</button>
 </header><section class="card">
 <h2>📦 Customer Orders</h2>
@@ -38,6 +38,11 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <option>Shoes</option>
 <option>Bags</option>
 <option>Accessories</option>
+<option>Phones</option>
+<option>Phone Accessories</option>
+<option>Networking &amp; Internet</option>
+<option>Power &amp; Energy</option>
+<option>Home Appliances</option>
 </select><textarea id="description" placeholder="Product description" required></textarea><h3>Price & discount</h3><label class="choice"><input id="applyDiscount" type="checkbox" checked> Apply 13% discount</label><label for="comparePrice" id="originalPriceLabel">Original price (before discount)</label><input id="comparePrice" type="number" min="1" placeholder="Enter the normal price"><label for="price" id="sellingPriceLabel">Selling price after discount</label><input id="price" type="number" min="1" placeholder="Selling price" readonly required><p class="small" id="priceHelp">The selling price is calculated automatically when discount is on. Untick to enter a normal selling price.</p>
 <label>Product picture</label>
 <input id="image" type="file" accept="image/*" required>
@@ -266,12 +271,12 @@ async function editProduct(p) {
   }
 
   const category = prompt(
-    "Category: Clothes, Shoes, Bags, or Accessories",
+    "Category: Clothes, Shoes, Bags, Accessories, Phones, Phone Accessories, Networking & Internet, Power & Energy, or Home Appliances",
     p.Category || "Clothes"
   );
   if (category === null) return;
 
-  const validCategories = ["Clothes", "Shoes", "Bags", "Accessories"];
+  const validCategories = ["Clothes", "Shoes", "Bags", "Accessories", "Phones", "Phone Accessories", "Networking & Internet", "Power & Energy", "Home Appliances"];
 
   if (!validCategories.includes(category.trim())) {
     alert("Enter a valid category.");
