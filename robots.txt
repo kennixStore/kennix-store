@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kennixstore.github.io/kennix-store/sitemap.xml
