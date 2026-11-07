@@ -392,6 +392,28 @@ async function loadOrders() {
       await loadOrders();
     };
     item.append(statusLabel, status, save);
+
+    const deleteOrder = document.createElement("button");
+    deleteOrder.type = "button";
+    deleteOrder.className = "deleteBtn";
+    deleteOrder.textContent = "Delete Order";
+    deleteOrder.onclick = async () => {
+      if (!(await checkLogin())) return;
+      const reference = order.order_reference || ("Order #" + order.id);
+      if (!confirm("Permanently delete " + reference + "? This cannot be undone.")) return;
+      deleteOrder.disabled = true;
+      deleteOrder.textContent = "Deleting...";
+      const { error: deleteError } = await db.from("orders").delete().eq("id", order.id);
+      if (deleteError) {
+        deleteOrder.disabled = false;
+        deleteOrder.textContent = "Delete Order";
+        alert("Order deletion failed: " + deleteError.message);
+        return;
+      }
+      await loadOrders();
+      await loadDashboardStats();
+    };
+    item.appendChild(deleteOrder);
     box.appendChild(item);
   });
 }
