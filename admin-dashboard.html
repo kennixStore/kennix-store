@@ -43,7 +43,16 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <option>Networking &amp; Internet</option>
 <option>Power &amp; Energy</option>
 <option>Home Appliances</option>
-</select><textarea id="description" placeholder="Product description" required></textarea><h3>Price & discount</h3><label class="choice"><input id="applyDiscount" type="checkbox" checked> Apply 13% discount</label><label for="comparePrice" id="originalPriceLabel">Original price (before discount)</label><input id="comparePrice" type="number" min="1" placeholder="Enter the normal price"><label for="price" id="sellingPriceLabel">Selling price after discount</label><input id="price" type="number" min="1" placeholder="Selling price" readonly required><p class="small" id="priceHelp">The selling price is calculated automatically when discount is on. Untick to enter a normal selling price.</p>
+</select><textarea id="description" placeholder="Product description" required></textarea>
+<label for="specifications">Key specifications (optional)</label>
+<textarea id="specifications" placeholder="Enter one detail per line, for example:
+Brand: Samsung
+Model: Galaxy A15
+Storage: 128GB
+RAM: 6GB
+Battery: 5000mAh
+Warranty: 6 months"></textarea>
+<p class="small">Use the details that apply to the product. For fashion, you can enter material, fit, sizes or care instructions.</p><h3>Price & discount</h3><label class="choice"><input id="applyDiscount" type="checkbox" checked> Apply 13% discount</label><label for="comparePrice" id="originalPriceLabel">Original price (before discount)</label><input id="comparePrice" type="number" min="1" placeholder="Enter the normal price"><label for="price" id="sellingPriceLabel">Selling price after discount</label><input id="price" type="number" min="1" placeholder="Selling price" readonly required><p class="small" id="priceHelp">The selling price is calculated automatically when discount is on. Untick to enter a normal selling price.</p>
 <label>Product picture</label>
 <input id="image" type="file" accept="image/*" required>
 <button type="submit">Upload Product</button>
@@ -380,6 +389,10 @@ form.addEventListener("submit", async event => {
   const name = document.getElementById("name").value.trim();
   const category = document.getElementById("category").value;
   const description = document.getElementById("description").value.trim();
+  const specifications = document.getElementById("specifications").value.trim();
+  const fullDescription = specifications
+    ? description + "\\n\\n---KENNIX SPECS---\\n" + specifications
+    : description;
   const discounted=applyDiscountInput.checked;
   const originalPrice=discounted?Number(comparePriceInput.value):null;
   const price=discounted?Math.round(originalPrice*.87):Number(salePriceInput.value);
@@ -420,7 +433,7 @@ form.addEventListener("submit", async event => {
     .insert({
       Name: name,
       Category: category,
-      Description: description,
+      Description: fullDescription,
       Price: price,
       compare_at_price: originalPrice,
       Image_Url: imageData.publicUrl,
