@@ -160,92 +160,125 @@ async function checkLogin() {
 async function loadOrders() {
   const box = document.getElementById("orders");
   box.textContent = "Loading orders...";
-
-  const { data, error } = await db
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    box.textContent = "Could not load orders: " + error.message;
-    return;
-  }
-
+  const { data, error } = await db.from("orders").select("*").order("created_at", { ascending: false });
+  if (error) { box.textContent = "Could not load orders: " + error.message; return; }
   box.replaceChildren();
-
-  if (!data.length) {
-    box.textContent = "No customer orders yet.";
-    return;
-  }
+  if (!data || !data.length) { box.textContent = "No customer orders yet."; return; }
 
   data.forEach(order => {
     const item = document.createElement("div");
     item.className = "order";
-
     const title = document.createElement("h3");
-    title.textContent = "Order #" + order.id;
-
+    title.textContent = order.order_reference || ("Order #" + order.id);
     const details = document.createElement("p");
-    details.textContent =
-      "Customer: " + order.customer_name +
-      "\nPhone: " + order.customer_phone +
-      "\nAddress: " + order.delivery_address +
-      "\nProduct: " + order.product_name +
-      "\nQuantity: " + order.quantity +
-      "\nUnit price: ₦" + Number(order.unit_price).toLocaleString("en-NG") +
-      "\nTotal: ₦" + Number(order.total_amount).toLocaleString("en-NG");
-
     details.style.whiteSpace = "pre-line";
-
+    details.textContent =
+      "Customer: " + (order.customer_name || "N/A") +
+      "\nPhone: " + (order.customer_phone || "N/A") +
+      "\nAddress: " + (order.delivery_address || "N/A") +
+      "\nProduct: " + (order.product_name || "N/A") +
+      "\nQuantity: " + (order.quantity ?? "N/A") +
+      "\nUnit price: ₦" + Number(order.unit_price || 0).toLocaleString("en-NG") +
+      "\nTotal: ₦" + Number(order.total_amount || 0).toLocaleString("en-NG") +
+      "\nPayment: " + (order.payment_status || "pending") +
+      "\nOrder status: " + (order.status || "Pending");
     const date = document.createElement("p");
     date.className = "small";
-    date.textContent = "Ordered: " + new Date(order.created_at).toLocaleString();
+    date.textContent = "Ordered: " + (order.created_at ? new Date(order.created_at).toLocaleString("en-NG") : "N/A");
+    item.append(title, details, date);
 
-    const label = document.createElement("label");
-    label.textContent = "Order status";
+    const paymentHeading = document.createElement("h4");
+    paymentHeading.textContent = "Payment verification";
+    item.appendChild(paymentHeading);
+    if (order.payment_submitted_at) {
+      const submitted = document.createElement("p");
+      submitted.className = "small";
+      submitted.textContent = "Receipt submitted: " + new Date(order.payment_submitted_at).toLocaleString("en-NG");
+      item.appendChild(submitted);
+    }
+    if (order.payment_review_note) {
+      const note = document.createElement("p");
+      note.className = "small";
+      note.textContent = "Payment review note: " + order.payment_review_note;
+      item.appendChild(note);
+    }
+    if (order.payment_proof_path) {
+      const receipt = document.createElement("button");
+      receipt.type = "button";
+      receipt.textContent = "View Payment Receipt";
+      receipt.className = "editBtn";
+      receipt.onclick = async () => {
+        receipt.disabled = true; receipt.textContent = "Opening receipt...";
+        const { data: signed, error: receiptError } = await db.storage.from("payment-proofs").createSignedUrl(order.payment_proof_path, 60);
+        receipt.disabled = false; receipt.textContent = "View Payment Receipt";
+        if (receiptError) { alert("Could not open receipt: " + receiptError.message); return; }
+        window.open(signed.signedUrl, "_blank", "noopener");
+      };
+      item.appendChild(receipt);
+    } else {
+      const noReceipt = document.createElement("p");
+      noReceipt.className = "small";
+      noReceipt.textContent = "No payment receipt uploaded yet.";
+      item.appendChild(noReceipt);
+    }
+    if (order.payment_proof_path && order.payment_status !== "paid") {
+      const approve = document.createElement("button");
+      approve.textContent = "Approve Payment";
+      approve.onclick = async () => {
+        if (!(await checkLogin())) return;
+        if (!confirm("Confirm that the payment has been received and the receipt is correct?")) return;
+        approve.disabled = true;
+        const { error: updateError } = await db.from("orders").update({
+          payment_status: "paid",
+          payment_reviewed_at: new Date().toISOString(),
+          payment_review_note: null
+        }).eq("id", order.id);
+        if (updateError) { approve.disabled = false; alert("Payment approval failed: " + updateError.message); return; }
+        await loadOrders();
+      };
+      item.appendChild(approve);
 
+      const reject = document.createElement("button");
+      reject.className = "deleteBtn";
+      reject.textContent = "Reject Receipt";
+      reject.onclick = async () => {
+        if (!(await checkLogin())) return;
+        const reason = prompt("Why are you rejecting this payment receipt?");
+        if (!reason || !reason.trim()) return;
+        if (!confirm("Reject this receipt and save the reason?")) return;
+        reject.disabled = true;
+        const { error: updateError } = await db.from("orders").update({
+          payment_status: "rejected",
+          payment_reviewed_at: new Date().toISOString(),
+          payment_review_note: reason.trim()
+        }).eq("id", order.id);
+        if (updateError) { reject.disabled = false; alert("Receipt rejection failed: " + updateError.message); return; }
+        await loadOrders();
+      };
+      item.appendChild(reject);
+    }
+
+    const statusLabel = document.createElement("label");
+    statusLabel.textContent = "Update order fulfilment status";
     const status = document.createElement("select");
-    status.className = "status";
-
-    ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"]
-      .forEach(value => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = value;
-        status.appendChild(option);
-      });
-
-    status.value = order.status;
-
+    ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"].forEach(value => {
+      const option = document.createElement("option"); option.value = value; option.textContent = value; status.appendChild(option);
+    });
+    status.value = order.status || "Pending";
     const save = document.createElement("button");
-    save.textContent = "Update Order Status";
-
+    save.textContent = "Save Order Status";
     save.onclick = async () => {
-      save.disabled = true;
-      save.textContent = "Saving...";
-
-      const { error } = await db
-        .from("orders")
-        .update({ status: status.value })
-        .eq("id", order.id);
-
-      save.disabled = false;
-      save.textContent = "Update Order Status";
-
-      if (error) {
-        alert("Status update failed: " + error.message);
-        return;
-      }
-
-      alert("Order #" + order.id + " updated to " + status.value + ".");
-      loadOrders();
+      if (!(await checkLogin())) return;
+      save.disabled = true; save.textContent = "Saving...";
+      const { error: updateError } = await db.from("orders").update({ status: status.value }).eq("id", order.id);
+      save.disabled = false; save.textContent = "Save Order Status";
+      if (updateError) { alert("Order status update failed: " + updateError.message); return; }
+      await loadOrders();
     };
-
-    item.append(title, details, date, label, status, save);
+    item.append(statusLabel, status, save);
     box.appendChild(item);
   });
 }
-
 document.getElementById("refreshOrders").onclick = loadOrders;
 
 /* LOAD PRODUCTS */
