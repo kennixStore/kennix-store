@@ -5,7 +5,7 @@
 <title>KENNIX Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body{font-family:Arial;background:#f5f3ff;margin:0;padding:16px;color:#222}
+body{font-family:Arial;background:#f4f6f2;margin:0;padding:16px;color:#1d2b24}
 header{background:#5427a8;color:white;padding:20px;border-radius:12px}
 .card{background:white;padding:16px;margin:18px 0;border-radius:12px}
 input,textarea,select,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:7px;border:1px solid #ccc}
@@ -19,17 +19,50 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 .deleteBtn{background:#c62828}
 .status{background:#f5f3ff}
 .small{font-size:14px;color:#555}.choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0 16px}.choice{display:flex;align-items:center;gap:6px;background:#f5f7f4;border:1px solid #e0e6df;border-radius:7px;padding:8px;font-size:13px}.choice input{width:auto;margin:0}.variant-entry{background:#fbfcfa;border-radius:8px}
+
+/* KENNIX organised admin dashboard */
+.admin-header{max-width:1100px;margin:0 auto 18px;background:#022c22;color:#fff;padding:22px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.admin-header h1{margin:0;color:#d4af37;font-size:25px;letter-spacing:.5px}.admin-header p{margin:6px 0 0;color:#e1e9e2;font-size:13px}
+.admin-header #logout{width:auto;min-width:100px;background:#d4af37;color:#022c22;margin:0}
+.admin-shell{max-width:1100px;margin:auto}.admin-overview{background:#fff;border:1px solid #e4e9e3;border-radius:12px;padding:18px;margin:0 0 18px}
+.admin-overview h2{margin:0 0 5px;color:#022c22;font-size:20px}.admin-overview>p{margin:0 0 16px;color:#68766d;font-size:13px}
+.admin-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.admin-tab{width:100%;min-height:88px;margin:0;padding:14px;text-align:left;background:#f8faf7;color:#022c22;border:1px solid #e1e8df;border-radius:10px;display:flex;flex-direction:column;justify-content:center;gap:7px;transition:.18s}
+.admin-tab strong{font-size:14px}.admin-tab span{font-size:11px;color:#68766d;font-weight:400;line-height:1.4}
+.admin-tab:hover,.admin-tab.active{border-color:#d4af37;background:#f5f7f1;box-shadow:0 3px 12px #022c2210}
+.admin-tab.active{outline:2px solid #d4af37}
+.admin-panel{max-width:1100px;margin:0 auto 18px;border:1px solid #e5eae3;border-radius:12px;box-shadow:0 3px 14px #022c2208}
+.admin-panel h2{color:#022c22;margin-top:0}
+.admin-panel[hidden]{display:none!important}
+.admin-panel button{border-radius:6px}
+.admin-panel input,.admin-panel textarea,.admin-panel select{border-radius:6px}
+.admin-back{width:auto;background:#e9eee8;color:#022c22;padding:9px 13px;margin:0 0 12px}
+@media(max-width:650px){body{padding:10px}.admin-header{padding:17px;border-radius:9px}.admin-header h1{font-size:21px}.admin-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.admin-tab{min-height:82px;padding:11px}.admin-tab strong{font-size:12px}.admin-tab span{font-size:10px}.admin-panel{padding:13px;margin-bottom:12px}}
 </style>
 </head>
-<body><header>
-<h1>KENNIX Admin</h1>
-<p>Manage your multi-category store</p>
+<body><div class="admin-shell"><header class="admin-header">
+<div><h1>KENNIX ADMIN</h1><p>Manage your store from one place.</p></div>
 <button id="logout">Log Out</button>
-</header><section class="card">
+</header>
+<section class="admin-overview">
+<h2>Dashboard</h2><p>Choose what you want to manage.</p>
+<nav class="admin-nav" aria-label="Admin sections">
+<button class="admin-tab active" type="button" data-admin-tab="overview"><strong>📊 Overview</strong><span>Dashboard home</span></button>
+<button class="admin-tab" type="button" data-admin-tab="orders"><strong>📦 Orders</strong><span>View and update customer orders</span></button>
+<button class="admin-tab" type="button" data-admin-tab="upload"><strong>➕ Upload Products</strong><span>Add products to the store</span></button>
+<button class="admin-tab" type="button" data-admin-tab="products"><strong>🛍️ Products</strong><span>Edit or remove products</span></button>
+<button class="admin-tab" type="button" data-admin-tab="options"><strong>🎨 Colors & Sizes</strong><span>Add product options and stock</span></button>
+<button class="admin-tab" type="button" data-admin-tab="reviews"><strong>⭐ Reviews</strong><span>Approve or remove customer reviews</span></button>
+</nav>
+</section>
+<section class="admin-panel" data-admin-panel="overview">
+<div class="card" style="margin:0"><h2>Welcome to KENNIX Admin</h2><p class="small">Select a category above to manage that part of your store. Your existing products, orders, inventory and reviews remain connected.</p></div>
+</section>
+<section class="card admin-panel" data-admin-panel="orders" hidden>
 <h2>📦 Customer Orders</h2>
 <button id="refreshOrders">Refresh Orders</button>
 <div id="orders">Loading orders...</div>
-</section><section class="card">
+</section><section class="card admin-panel" data-admin-panel="upload" hidden>
 <h2>➕ Add New Product</h2>
 <form id="productForm">
 <input id="name" placeholder="Product name" required><select id="category" required>
@@ -58,12 +91,12 @@ Warranty: 6 months"></textarea>
 <button type="submit">Upload Product</button>
 <p id="message"></p>
 </form>
-</section><section class="card">
+</section><section class="card admin-panel" data-admin-panel="products" hidden>
 <h2>🛍️ Your Products</h2>
 <div id="products">Loading products...</div>
 </section>
-<section class="card" id="review-moderation"><h2>Customer Reviews</h2><p class="small">Review customer submissions and approve suitable reviews before they appear publicly.</p><button id="refreshReviews" type="button">Refresh Reviews</button><div id="reviewQueue">Loading reviews...</div></section>
-<section class="card" id="variant-inventory">
+<section class="card admin-panel" id="review-moderation" data-admin-panel="reviews" hidden><h2>Customer Reviews</h2><p class="small">Review customer submissions and approve suitable reviews before they appear publicly.</p><button id="refreshReviews" type="button">Refresh Reviews</button><div id="reviewQueue">Loading reviews...</div></section>
+<section class="card admin-panel" id="variant-inventory" data-admin-panel="options" hidden>
 <h2>Flexible Product Inventory</h2>
 <p class="small">Use this for clothing sizes, phone storage, RAM configurations, power-bank capacity, Wi-Fi models and other product options. Add one option at a time.</p>
 <form id="variantForm">
@@ -76,7 +109,7 @@ Warranty: 6 months"></textarea>
 <p id="variantMessage" class="small"></p>
 </form>
 <h3>Existing Stock Options</h3><div id="variantList">Loading inventory...</div>
-</section>
+</section></div>
 <script>
 const SUPABASE_URL = "https://shdstohkbpvoxjtghsob.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Izj2iOacJqMcoso2OeLyzA_gghnKnxo";
@@ -535,6 +568,14 @@ variantForm.addEventListener("submit",async event=>{
  variantMessage.textContent="Product option saved.";document.getElementById("optionValue").value="";document.getElementById("variantStock").value="0";document.getElementById("variantPrice").value="";
  await loadVariantInventory();
 });
+/* ADMIN CATEGORY NAVIGATION */
+function showAdminPanel(name){
+ document.querySelectorAll("[data-admin-panel]").forEach(panel=>{panel.hidden=panel.dataset.adminPanel!==name});
+ document.querySelectorAll("[data-admin-tab]").forEach(tab=>{const active=tab.dataset.adminTab===name;tab.classList.toggle("active",active);tab.setAttribute("aria-pressed",String(active))});
+}
+document.querySelectorAll("[data-admin-tab]").forEach(tab=>tab.addEventListener("click",()=>showAdminPanel(tab.dataset.adminTab)));
+showAdminPanel("overview");
+
 /* START */
 
 (async () => {
