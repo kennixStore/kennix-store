@@ -54,6 +54,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <button class="admin-tab" type="button" data-admin-tab="options"><strong>🎨 Colors & Sizes</strong><span>Add product options and stock</span></button>
 <button class="admin-tab" type="button" data-admin-tab="reviews"><strong>⭐ Reviews</strong><span>Approve or remove customer reviews</span></button>
 <button class="admin-tab" type="button" data-admin-tab="guide"><strong>📘 Admin Guide</strong><span>Simple instructions for store tasks</span></button>
+<button class="admin-tab" type="button" data-admin-tab="suppliers"><strong>🤝 Suppliers</strong><span>Track suppliers, costs and sourcing</span></button>
 </nav>
 </section>
 <section class="admin-panel" data-admin-panel="overview">
@@ -112,6 +113,22 @@ Warranty: 6 months"></textarea>
 </section><section class="card admin-panel" data-admin-panel="products" hidden>
 <h2>🛍️ Your Products</h2>
 <div id="products">Loading products...</div>
+</section>
+<section class="card admin-panel" data-admin-panel="suppliers" hidden>
+<h2>🤝 Supplier Management</h2>
+<p class="small">Keep supplier contacts, product costs and sourcing progress in one place.</p>
+<form id="supplierForm">
+<label for="supplierName">Supplier / business name</label><input id="supplierName" required maxlength="120" placeholder="Supplier name">
+<label for="supplierPhone">Phone / WhatsApp</label><input id="supplierPhone" maxlength="40" placeholder="Supplier contact">
+<label for="supplierEmail">Email (optional)</label><input id="supplierEmail" type="email" maxlength="160" placeholder="Supplier email">
+<label for="supplierProduct">Product supplied</label><input id="supplierProduct" required maxlength="160" placeholder="Product name or type">
+<label for="supplierCost">Supplier price (₦)</label><input id="supplierCost" type="number" min="0" step="0.01" required>
+<label for="supplierSelling">KENNIX selling price (₦)</label><input id="supplierSelling" type="number" min="0" step="0.01" required>
+<label for="supplierStatus">Sourcing status</label><select id="supplierStatus"><option>Potential supplier</option><option>Contacted</option><option>Price agreed</option><option>Ready to supply</option><option>Order placed</option><option>Item received</option><option>Dispatched to customer</option><option>Inactive</option></select>
+<label for="supplierNotes">Notes (optional)</label><textarea id="supplierNotes" maxlength="1000" placeholder="Product link, delivery terms, packaging details or other notes"></textarea>
+<button id="saveSupplier" type="submit">Save Supplier Record</button><p id="supplierMessage" class="small" aria-live="polite"></p>
+</form>
+<h3>Saved Suppliers</h3><button type="button" id="refreshSuppliers">Refresh Suppliers</button><div id="supplierList">Supplier records will appear here.</div>
 </section>
 <section class="card admin-panel" data-admin-panel="guide" hidden>
 <h2>📘 KENNIX Admin Guide</h2>
@@ -216,6 +233,44 @@ async function loadDashboardStats(){
  message.textContent=errors.length?"Some figures could not be loaded. Check the relevant table permissions.":"Statistics updated.";
 }
 document.getElementById("refreshDashboardStats").addEventListener("click",loadDashboardStats);
+/* SUPPLIER MANAGEMENT */
+async function loadSuppliers(){
+ const box=document.getElementById("supplierList");box.textContent="Loading suppliers...";
+ const {data,error}=await db.from("kennix_suppliers").select("*").order("created_at",{ascending:false});
+ if(error){box.textContent="Supplier records are not ready yet. Run the setup SQL shown below in Supabase. Details: "+error.message;return}
+ box.replaceChildren();
+ if(!data?.length){box.textContent="No supplier records saved yet.";return}
+ data.forEach(s=>{
+  const card=document.createElement("div");card.className="inventory-row";
+  const title=document.createElement("strong");title.textContent=s.supplier_name+" — "+s.product_name;
+  const margin=Number(s.selling_price||0)-Number(s.supplier_cost||0);
+  const info=document.createElement("p");info.className="inventory-meta";info.textContent="Contact: "+(s.phone||"N/A")+" · Email: "+(s.email||"N/A")+"\nSupplier price: ₦"+Number(s.supplier_cost||0).toLocaleString("en-NG")+" · KENNIX price: ₦"+Number(s.selling_price||0).toLocaleString("en-NG")+" · Difference: ₦"+margin.toLocaleString("en-NG")+"\nStatus: "+s.sourcing_status+"\nNotes: "+(s.notes||"None");
+  info.style.whiteSpace="pre-line";
+  const edit=document.createElement("button");edit.className="editBtn";edit.textContent="Edit status / details";
+  edit.onclick=async()=>{
+   const status=prompt("Update sourcing status:",s.sourcing_status||"Potential supplier");if(status===null)return;
+   const notes=prompt("Update notes:",s.notes||"");if(notes===null)return;
+   const {error:e}=await db.from("kennix_suppliers").update({sourcing_status:status.trim(),notes:notes.trim()}).eq("id",s.id);
+   if(e){alert("Update failed: "+e.message);return}loadSuppliers();
+  };
+  const del=document.createElement("button");del.className="deleteBtn";del.textContent="Delete record";
+  del.onclick=async()=>{if(!confirm("Delete this supplier record?"))return;const {error:e}=await db.from("kennix_suppliers").delete().eq("id",s.id);if(e){alert("Delete failed: "+e.message);return}loadSuppliers()};
+  card.append(title,info,edit,del);box.appendChild(card);
+ });
+}
+document.getElementById("supplierForm").addEventListener("submit",async e=>{
+ e.preventDefault();if(!(await checkLogin()))return;
+ const cost=Number(document.getElementById("supplierCost").value),selling=Number(document.getElementById("supplierSelling").value);
+ if(cost<0||selling<0){document.getElementById("supplierMessage").textContent="Prices cannot be negative.";return}
+ const payload={supplier_name:document.getElementById("supplierName").value.trim(),phone:document.getElementById("supplierPhone").value.trim(),email:document.getElementById("supplierEmail").value.trim()||null,product_name:document.getElementById("supplierProduct").value.trim(),supplier_cost:cost,selling_price:selling,sourcing_status:document.getElementById("supplierStatus").value,notes:document.getElementById("supplierNotes").value.trim()||null};
+ const btn=document.getElementById("saveSupplier");btn.disabled=true;btn.textContent="Saving...";
+ const {error}=await db.from("kennix_suppliers").insert(payload);
+ btn.disabled=false;btn.textContent="Save Supplier Record";
+ const msg=document.getElementById("supplierMessage");
+ if(error){msg.textContent="Could not save. Run the supplier table setup SQL in Supabase first. "+error.message;return}
+ msg.textContent="Supplier record saved.";e.target.reset();loadSuppliers();
+});
+document.getElementById("refreshSuppliers").addEventListener("click",loadSuppliers);
 /* CUSTOMER ORDERS */
 
 async function loadOrders() {
@@ -710,6 +765,7 @@ showAdminPanel("overview");
 (async () => {
   if (await checkLogin()) {
     loadDashboardStats();
+    loadSuppliers();
     loadProducts();
     loadOrders();
     await loadVariantProducts();
