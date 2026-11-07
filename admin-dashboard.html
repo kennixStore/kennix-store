@@ -38,7 +38,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 .admin-panel input,.admin-panel textarea,.admin-panel select{border-radius:6px}
 .admin-back{width:auto;background:#e9eee8;color:#022c22;padding:9px 13px;margin:0 0 12px}
 @media(max-width:650px){body{padding:10px}.admin-header{padding:17px;border-radius:9px}.admin-header h1{font-size:21px}.admin-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.admin-tab{min-height:82px;padding:11px}.admin-tab strong{font-size:12px}.admin-tab span{font-size:10px}.admin-panel{padding:13px;margin-bottom:12px}}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:18px 0}.stat-card{background:#f5f8f4;border:1px solid #e1e8df;border-radius:14px;padding:16px;min-height:88px}.stat-card span{display:block;color:#58635e;font-size:14px}.stat-card strong{display:block;color:#022c22;font-size:25px;margin-top:8px;overflow-wrap:anywhere}</style>
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:18px 0}.stat-card{background:#f5f8f4;border:1px solid #e1e8df;border-radius:14px;padding:16px;min-height:88px}.stat-card span{display:block;color:#58635e;font-size:14px}.stat-card strong{display:block;color:#022c22;font-size:25px;margin-top:8px;overflow-wrap:anywhere}.guide-step{background:#f8faf7;border:1px solid #e1e8df;border-radius:10px;padding:14px;margin:12px 0}.guide-step h3{margin:0 0 8px;color:#022c22}.guide-step ol,.guide-step ul{padding-left:22px;line-height:1.65}.guide-step p{line-height:1.6}</style>
 </head>
 <body><div class="admin-shell"><header class="admin-header">
 <div><h1>KENNIX ADMIN</h1><p>Manage your store from one place.</p></div>
@@ -53,6 +53,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <button class="admin-tab" type="button" data-admin-tab="products"><strong>🛍️ Products</strong><span>Edit or remove products</span></button>
 <button class="admin-tab" type="button" data-admin-tab="options"><strong>🎨 Colors & Sizes</strong><span>Add product options and stock</span></button>
 <button class="admin-tab" type="button" data-admin-tab="reviews"><strong>⭐ Reviews</strong><span>Approve or remove customer reviews</span></button>
+<button class="admin-tab" type="button" data-admin-tab="guide"><strong>📘 Admin Guide</strong><span>Simple instructions for store tasks</span></button>
 </nav>
 </section>
 <section class="admin-panel" data-admin-panel="overview">
@@ -111,6 +112,18 @@ Warranty: 6 months"></textarea>
 </section><section class="card admin-panel" data-admin-panel="products" hidden>
 <h2>🛍️ Your Products</h2>
 <div id="products">Loading products...</div>
+</section>
+<section class="card admin-panel" data-admin-panel="guide" hidden>
+<h2>📘 KENNIX Admin Guide</h2>
+<p class="small">Use this guide whenever you need help managing the store. Work through the steps in order.</p>
+<div class="guide-step"><h3>1. Upload a product</h3><ol><li>Open <b>Upload Products</b>.</li><li>Enter the product name and choose the correct category.</li><li>Write a clear description and add relevant specifications.</li><li>Enter the original price if applying the 13% discount, or untick the discount option to enter a normal selling price.</li><li>Choose a product picture and tap <b>Upload Product</b>.</li><li>Open <b>Products</b> to confirm the listing appears correctly.</li></ol></div>
+<div class="guide-step"><h3>2. Add colours, sizes or specifications</h3><ol><li>Open <b>Colors &amp; Sizes</b>.</li><li>For clothes, shoes and bags, use the first form and choose Colour, Size, Material, Style or Design.</li><li>For phones, accessories and appliances, use the second form and enter the specification name and value, such as Storage: 128GB or Wattage: 1.5kW.</li><li>Choose the product, enter available quantity and optionally set a special price.</li><li>Tap the save button and check the Existing Stock Options list.</li></ol></div>
+<div class="guide-step"><h3>3. Review and confirm customer payments</h3><ol><li>Open <b>Orders</b> and find the customer's order.</li><li>Check the order total and open the uploaded receipt using <b>View Payment Receipt</b>.</li><li>Only after confirming the money has actually arrived in the KENNIX account, tap <b>Approve Payment</b>.</li><li>If the receipt is incorrect or payment cannot be confirmed, tap <b>Reject Receipt</b> and enter a clear reason.</li><li>Never approve a payment based only on a screenshot or customer claim.</li></ol></div>
+<div class="guide-step"><h3>4. Process and deliver an order</h3><ol><li>After payment is confirmed, prepare or source the product.</li><li>Change the order status to <b>Processing</b> while preparing it.</li><li>Change it to <b>Shipped</b> once it has actually been dispatched.</li><li>Change it to <b>Delivered</b> only after delivery is confirmed.</li><li>Use <b>Cancelled</b> only when the order has genuinely been cancelled.</li></ol></div>
+<div class="guide-step"><h3>5. Manage products</h3><ol><li>Open <b>Products</b> to view current listings.</li><li>Use <b>Edit Product</b> to correct product details or prices.</li><li>Use <b>Delete Product</b> only when the listing should be permanently removed.</li><li>Check product options and stock before confirming availability to a customer.</li></ol></div>
+<div class="guide-step"><h3>6. Approve customer reviews</h3><ol><li>Open <b>Reviews</b>.</li><li>Read the customer's rating and comment.</li><li>Tap <b>Approve review</b> to publish an appropriate review.</li><li>Delete spam, abusive or irrelevant submissions.</li></ol></div>
+<div class="guide-step"><h3>7. Use the Overview</h3><p>Open <b>Overview</b> to check orders, pending and confirmed payments, revenue, fulfilment progress, active products and low-stock options. Tap <b>Refresh Statistics</b> to reload the figures.</p></div>
+<div class="guide-step"><h3>Important KENNIX rules</h3><ul><li>Verify money in the bank account before approving any payment.</li><li>Do not mark an order as shipped or delivered before it happens.</li><li>Do not promise stock or delivery dates unless confirmed.</li><li>Handle customer names, phone numbers, addresses and receipts privately.</li><li>Both admins currently use the same login, so the system cannot tell which person performed an action. Do not share the password outside the two authorised admins.</li></ul></div>
 </section>
 <section class="card admin-panel" id="review-moderation" data-admin-panel="reviews" hidden><h2>Customer Reviews</h2><p class="small">Review customer submissions and approve suitable reviews before they appear publicly.</p><button id="refreshReviews" type="button">Refresh Reviews</button><div id="reviewQueue">Loading reviews...</div></section>
 <section class="card admin-panel" id="variant-inventory" data-admin-panel="options" hidden>
