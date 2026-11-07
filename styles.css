@@ -94,3 +94,9 @@
 .category-strip a{min-width:0}
 .category-strip strong{line-height:1.35}
 @media(max-width:560px){.category-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.category-strip a{padding:13px 10px;gap:8px}.category-strip a>b{width:34px;height:34px;flex:0 0 34px}.filters{max-width:100%}}
+
+/* KENNIX product specification panel */
+.product-specifications{margin:16px 0;padding:14px 16px;border:1px solid rgba(2,44,34,.14);border-radius:10px;background:#f7f7f2}
+.product-specifications h3{margin:0 0 9px;font-size:14px;letter-spacing:.04em}
+.product-specifications ul{margin:0;padding-left:18px;display:grid;gap:6px}
+.product-specifications li{font-size:13px;line-height:1.5;color:#333}
