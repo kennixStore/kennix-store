@@ -265,9 +265,75 @@ async function loadOrders() {
   box.replaceChildren();
   if (!data || !data.length) { box.textContent = "No customer orders yet."; return; }
 
+  const toolbar = document.createElement("div");
+  toolbar.className = "order-selection-toolbar";
+  toolbar.style.cssText = "display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0 18px;";
+  const selectAllLabel = document.createElement("label");
+  selectAllLabel.style.cssText = "display:flex;gap:8px;align-items:center;";
+  const selectAll = document.createElement("input");
+  selectAll.type = "checkbox";
+  selectAllLabel.append(selectAll, document.createTextNode("Select all"));
+  const selectedCount = document.createElement("span");
+  selectedCount.className = "small";
+  selectedCount.textContent = "0 selected";
+  const deleteSelected = document.createElement("button");
+  deleteSelected.type = "button";
+  deleteSelected.className = "deleteBtn";
+  deleteSelected.textContent = "Delete Selected";
+  deleteSelected.disabled = true;
+  toolbar.append(selectAllLabel, selectedCount, deleteSelected);
+  box.appendChild(toolbar);
+
+  const selectedIds = new Set();
+  const checkboxes = [];
+  const updateSelection = () => {
+    selectedCount.textContent = selectedIds.size + " selected";
+    deleteSelected.disabled = selectedIds.size === 0;
+    selectAll.checked = checkboxes.length > 0 && selectedIds.size === checkboxes.length;
+    selectAll.indeterminate = selectedIds.size > 0 && selectedIds.size < checkboxes.length;
+  };
+  selectAll.addEventListener("change", () => {
+    checkboxes.forEach(({checkbox, id}) => {
+      checkbox.checked = selectAll.checked;
+      if (selectAll.checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+    });
+    updateSelection();
+  });
+  deleteSelected.addEventListener("click", async () => {
+    if (!(await checkLogin())) return;
+    if (!selectedIds.size) return;
+    const count = selectedIds.size;
+    if (!confirm("Permanently delete " + count + " selected order(s)? This cannot be undone.")) return;
+    deleteSelected.disabled = true;
+    deleteSelected.textContent = "Deleting...";
+    const ids = Array.from(selectedIds);
+    const { error: deleteError } = await db.from("orders").delete().in("id", ids);
+    if (deleteError) {
+      deleteSelected.disabled = false;
+      deleteSelected.textContent = "Delete Selected";
+      alert("Could not delete selected orders: " + deleteError.message);
+      return;
+    }
+    await loadOrders();
+    await loadDashboardStats();
+  });
+
   data.forEach(order => {
     const item = document.createElement("div");
     item.className = "order";
+    const selectLabel = document.createElement("label");
+    selectLabel.style.cssText = "display:flex;gap:8px;align-items:center;margin-bottom:8px;";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.setAttribute("aria-label", "Select order " + (order.order_reference || order.id));
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedIds.add(order.id);
+      else selectedIds.delete(order.id);
+      updateSelection();
+    });
+    checkboxes.push({checkbox, id:order.id});
+    selectLabel.append(checkbox, document.createTextNode("Select this order"));
     const title = document.createElement("h3");
     title.textContent = order.order_reference || ("Order #" + order.id);
     const details = document.createElement("p");
@@ -285,7 +351,7 @@ async function loadOrders() {
     const date = document.createElement("p");
     date.className = "small";
     date.textContent = "Ordered: " + (order.created_at ? new Date(order.created_at).toLocaleString("en-NG") : "N/A");
-    item.append(title, details, date);
+    item.append(selectLabel, title, details, date);
 
     const paymentHeading = document.createElement("h4");
     paymentHeading.textContent = "Payment verification";
@@ -376,30 +442,9 @@ async function loadOrders() {
       await loadOrders();
     };
     item.append(statusLabel, status, save);
-
-    const deleteOrder = document.createElement("button");
-    deleteOrder.type = "button";
-    deleteOrder.className = "deleteBtn";
-    deleteOrder.textContent = "Delete Order";
-    deleteOrder.onclick = async () => {
-      if (!(await checkLogin())) return;
-      const reference = order.order_reference || ("Order #" + order.id);
-      if (!confirm("Permanently delete " + reference + "? This cannot be undone.")) return;
-      deleteOrder.disabled = true;
-      deleteOrder.textContent = "Deleting...";
-      const { error: deleteError } = await db.from("orders").delete().eq("id", order.id);
-      if (deleteError) {
-        deleteOrder.disabled = false;
-        deleteOrder.textContent = "Delete Order";
-        alert("Order deletion failed: " + deleteError.message);
-        return;
-      }
-      await loadOrders();
-      await loadDashboardStats();
-    };
-    item.appendChild(deleteOrder);
     box.appendChild(item);
   });
+  updateSelection();
 }
 document.getElementById("refreshOrders").onclick = loadOrders;
 
