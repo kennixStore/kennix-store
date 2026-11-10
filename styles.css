@@ -256,3 +256,60 @@ body{font-family:var(--sans)}
 .collection-carousel-controls button{width:36px;height:36px;background:#29213a;color:#fff;border:0}
 .carousel-position{font-weight:700;letter-spacing:.5px}
 @media(max-width:700px){.joggers-sale{align-items:flex-start;flex-direction:column}.collection-block{padding:14px!important}.collection-carousel .collection-card{flex-basis:68%}}
+
+
+/* KENNIX campaign refresh: joggers advert + distinct promo slides */
+.joggers-sale{
+  position:relative;isolation:isolate;margin:22px 6% 34px;padding:clamp(30px,5vw,58px);
+  min-height:300px;border:1px solid #8c6a36;border-radius:16px;overflow:hidden;
+  background:radial-gradient(ellipse at 82% 45%,#7b263d 0%,#421522 32%,#160d14 72%);
+  box-shadow:0 18px 42px rgba(30,10,20,.22);color:#fff;
+}
+.joggers-sale:before{
+  content:"";position:absolute;z-index:-1;inset:12px;border:1px solid rgba(226,190,111,.45);
+  border-radius:10px;pointer-events:none;
+}
+.joggers-sale:after{
+  content:"60%";position:absolute;z-index:-1;right:8%;top:50%;transform:translateY(-50%) rotate(-9deg);
+  font:900 clamp(115px,20vw,245px)/.8 Arial,sans-serif;letter-spacing:-.1em;color:rgba(255,220,150,.09);
+  -webkit-text-stroke:1px rgba(235,198,119,.22);pointer-events:none;
+}
+.joggers-sale-copy{position:relative;z-index:1;max-width:650px}
+.joggers-sale .eyebrow{color:#f0cc7a;letter-spacing:2.4px;font-weight:900}
+.joggers-sale h2{font:800 clamp(34px,5vw,62px)/.98 Arial,sans-serif;letter-spacing:-1.8px;color:#fff;margin:12px 0 16px;text-shadow:0 3px 20px #0008}
+.joggers-sale h2 em{font-style:normal;color:#f4ce78}
+.joggers-sale-copy>p:not(.eyebrow){font-size:11px;line-height:1.7;letter-spacing:1.1px;color:#f4e8d7}
+.joggers-sale-copy>p strong{display:inline-block;color:#160d14;background:#f4ce78;padding:4px 9px;font-size:17px;font-weight:900;letter-spacing:.3px}
+.joggers-sale-copy>a{display:inline-flex;align-items:center;gap:12px;margin-top:17px;padding:15px 22px;background:#f4ce78;color:#24131a;font-size:10px;font-weight:900;letter-spacing:1.2px;border-radius:4px;box-shadow:0 7px 18px #0005;transition:transform .2s,background .2s}
+.joggers-sale-copy>a:hover{transform:translateY(-3px);background:#ffe3a1}
+.joggers-countdown{position:relative;z-index:1;min-width:190px;padding:18px;background:#190f17d9;border:1px solid #d9b66b;border-radius:8px;color:#f4ce78;font-size:9px;font-weight:800;letter-spacing:1.4px;text-align:center;box-shadow:0 8px 25px #0005}
+.joggers-countdown strong{display:block;margin-top:9px;font-size:21px;letter-spacing:0;color:#fff}
+
+/* Three promo panels now have clearly different campaign identities */
+.promo-slide{min-height:275px;padding:clamp(30px,5vw,52px) 7%;border-radius:12px;position:relative;overflow:hidden}
+.promo-slide:nth-child(1){background:radial-gradient(circle at 78% 40%,#7650b5 0%,#39205f 35%,#171026 78%)}
+.promo-slide:nth-child(2){background:linear-gradient(115deg,#082f48 0%,#12627a 55%,#70b9c1 100%)}
+.promo-slide:nth-child(3){background:linear-gradient(115deg,#592039 0%,#9b3c48 52%,#d18b54 100%)}
+.promo-slide:after{content:"";position:absolute;right:8%;top:12%;width:210px;height:210px;border:1px solid #ffffff55;border-radius:50%;box-shadow:0 0 0 18px #ffffff0b,0 0 0 38px #ffffff08;pointer-events:none}
+.promo-slide>div,.promo-slide>.promo-art{position:relative;z-index:1}
+.promo-slide small{color:#f6d98d;font-weight:800}
+.promo-slide h2{font-size:clamp(36px,4.5vw,58px);letter-spacing:-1.8px;text-shadow:0 3px 18px #0003}
+.promo-slide h2 em{color:#f6d98d}
+.promo-slide p{font-size:12px;color:#fff;max-width:340px}
+.promo-slide a{background:#f6d98d;color:#20162c;border-radius:3px;padding:13px 18px}
+.promo-slide:nth-child(2) a{background:#fff;color:#103c50}
+.promo-slide:nth-child(3) a{background:#fff;color:#65253a}
+.promo-art{font-size:clamp(60px,8vw,96px);font-weight:900;letter-spacing:-7px;border:1px solid #ffffff80;background:#ffffff14;backdrop-filter:blur(3px);padding:24px 30px;box-shadow:12px 14px 0 #0002}
+.promo-slide:nth-child(2) .promo-art{transform:rotate(-7deg);border-radius:50%;letter-spacing:-4px}
+.promo-slide:nth-child(3) .promo-art{transform:rotate(7deg);border:2px solid #f6d98d;color:#f6d98d}
+.slider-controls>button{border-color:#a99ab7;color:#49356c}
+#promo-dots button.active{background:#8a5bb9}
+@media(max-width:650px){
+ .joggers-sale{margin:18px 4% 26px;padding:30px 24px;min-height:0;display:block}
+ .joggers-sale:after{right:-2%;top:42%;font-size:125px}
+ .joggers-sale h2{font-size:clamp(32px,9vw,45px)}
+ .joggers-countdown{margin-top:22px;min-width:0;width:max-content;max-width:100%}
+ .promo-slide{min-height:255px;grid-template-columns:1fr .45fr;padding:28px 22px}
+ .promo-slide:after{width:130px;height:130px;right:0}
+ .promo-art{font-size:48px;letter-spacing:-4px;padding:17px 15px}
+}
