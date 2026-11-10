@@ -217,3 +217,34 @@ body{background-color:#f6f5f0;background-image:radial-gradient(ellipse at 8% 12%
  .joggers-countdown strong{font-size:17px}
  .home-collections{background:linear-gradient(145deg,#fff 0%,#f3eff9 58%,#edf4f7 100%)}
 }
+
+
+/* KENNIX premium homepage refinement */
+:root{--sans:'Inter',Arial,sans-serif}
+body{font-family:var(--sans)}
+.hero h1,.section-top h2,.collection-heading h2,.manifesto h2,.newsletter h2,.joggers-sale h2{letter-spacing:-1.35px}
+.joggers-sale{background:linear-gradient(115deg,#17132a 0%,#292044 58%,#3a2636 100%);border:1px solid #57445f;box-shadow:0 16px 36px rgba(22,15,35,.12)}
+.joggers-sale .eyebrow{color:#e3c878}
+.joggers-sale h2{color:#fff}
+.joggers-sale h2 em{color:#e4c66f}
+.joggers-sale-copy>p:not(.eyebrow){color:#e4dce9}
+.joggers-sale-copy>p strong{color:#f0d27a}
+.joggers-sale-copy>a{background:#d4af37;color:#211a31;border-radius:2px}
+.joggers-countdown{background:#ffffff12;border:1px solid #ffffff35;color:#f4e8c4}
+.joggers-countdown strong{color:#fff}
+.collection-block:nth-of-type(2){padding:20px;border-radius:10px;background:linear-gradient(120deg,#f4f0fa,#fff)}
+.collection-block:nth-of-type(3){padding:20px;border-radius:10px;background:linear-gradient(120deg,#edf4fa,#fff)}
+.collection-block:nth-of-type(4){padding:20px;border-radius:10px;background:linear-gradient(120deg,#f8f1e7,#fff)}
+.collection-title{border-bottom-color:#d9d2e3}
+.collection-title h3{font-size:20px;letter-spacing:-.35px}
+.collection-grid.collection-carousel{scrollbar-width:none}
+.collection-grid.collection-carousel::-webkit-scrollbar{display:none}
+.collection-carousel .collection-card{flex:0 0 clamp(190px,22%,250px);border:1px solid #e2dce8;border-radius:7px;overflow:hidden;background:#fff;box-shadow:0 5px 16px rgba(30,24,45,.06)}
+.collection-card img{aspect-ratio:4/4.5;transition:transform .35s}
+.collection-card:hover img{transform:scale(1.035)}
+.collection-card-info{padding:13px}
+.collection-card-info h4{font-size:13px;color:#29213a}
+.collection-card-info strong{color:#4e2d83}
+.collection-carousel-controls button{width:36px;height:36px;background:#29213a;color:#fff;border:0}
+.carousel-position{font-weight:700;letter-spacing:.5px}
+@media(max-width:700px){.joggers-sale{align-items:flex-start;flex-direction:column}.collection-block{padding:14px!important}.collection-carousel .collection-card{flex-basis:68%}}
