@@ -12,7 +12,7 @@ const get=id=>document.getElementById(id);
 const money=n=>"₦"+Number(n||0).toLocaleString("en-NG");
 const categoryKey=v=>{v=String(v||"").trim().toLowerCase();return ["clothes","clothings","apparel"].includes(v)?"clothing":v};
 function message(text){const box=get("product-grid");if(!box)return;box.replaceChildren();const p=document.createElement("p");p.className="empty-products";p.textContent=text;box.append(p)}
-async function loadProducts(){try{const {data,error}=await getDb().from("products").select("*").eq("Is_active",true);if(error)throw error;products=data||[];try{const ids=products.map(p=>p.id);if(ids.length){const v=await getDb().from("product_variants").select("id,product_id,color,size,stock_quantity,price,compare_at_price,sku,is_active").in("product_id",ids).eq("is_active",true).gt("stock_quantity",0);if(v.error)throw v.error;productVariants=v.data||[]}}catch(variantError){console.warn("Variant inventory is unavailable; showing standard product listings.",variantError);productVariants=[]}renderProducts();renderHomeCollections()}catch(e){console.error(e);message("Products could not load. Please refresh and try again.")}}
+async function loadProducts(){try{const {data,error}=await getDb().from("products").select("*").eq("Is_active",true);if(error)throw error;products=data||[];try{const ids=products.map(p=>p.id);if(ids.length){const v=await getDb().from("product_variants").select("id,product_id,color,size,stock_quantity,price,compare_at_price,sku,is_active").in("product_id",ids).eq("is_active",true).gt("stock_quantity",0);if(v.error)throw v.error;productVariants=v.data||[]}}catch(variantError){console.warn("Variant inventory is unavailable; showing standard product listings.",variantError);productVariants=[]}renderProducts();renderHomeCollections();loadHomepageReviews()}catch(e){console.error(e);message("Products could not load. Please refresh and try again.")}}
 function renderProducts(){const box=get("product-grid");if(!box)return;box.replaceChildren();let list=products.filter(p=>(activeCategory==="All"||categoryKey(p.Category)===categoryKey(activeCategory))&&[p.Name,p.Category,p.Description].join(" ").toLowerCase().includes(searchText));if(sortMode==="low")list.sort((a,b)=>Number(a.Price)-Number(b.Price));if(sortMode==="high")list.sort((a,b)=>Number(b.Price)-Number(a.Price));if(!list.length){message(products.length?"No products match your selection.":"No active products yet. Please check back soon.");return}
 list.forEach(p=>{const card=document.createElement("article");card.className="product-card";card.tabIndex=0;const art=document.createElement("div");art.className="product-art";if(p.Image_Url){const img=document.createElement("img");img.src=p.Image_Url;img.alt=p.Name||"KENNIX product";img.loading="lazy";img.onerror=()=>{img.remove();art.textContent="KENNIX"};art.append(img)}else art.textContent="KENNIX";const tag=document.createElement("span");tag.className="product-tag";tag.textContent=p.Category||"KENNIX";const add=document.createElement("button");add.className="add-btn";add.type="button";add.textContent="+";add.setAttribute("aria-label","Add to bag");add.addEventListener("click",e=>{e.stopPropagation();openProduct(p)});art.append(tag,add);const info=document.createElement("div");info.className="product-info";const d=document.createElement("div");const name=document.createElement("h3");name.textContent=p.Name||"Unnamed product";const desc=document.createElement("p");desc.textContent=p.Description||"";d.append(name,desc);const price=document.createElement("span");price.className="price";price.innerHTML=p.compare_at_price?`<span class="old-price">${money(p.compare_at_price)}</span><span class="sale-price">${money(p.Price)}</span><small class="discount-pill">13% OFF</small>`:money(p.Price);info.append(d,price);card.append(art,info);card.addEventListener("click",()=>openProduct(p));card.addEventListener("keydown",e=>{if(e.key==="Enter")openProduct(p)});box.append(card)})}
 
@@ -31,11 +31,68 @@ function renderHomeCollections(){
   return card;
  };
  const shelves=[
-  ["new-arrivals-grid",[...products].sort((a,b)=>Number(b.id)-Number(a.id)).slice(0,4),"No new arrivals yet."],
-  ["featured-picks-grid",[...products].slice(0,4),"No featured products yet."],
+  ["new-arrivals-grid",[...products].sort((a,b)=>Number(b.id)-Number(a.id)).slice(0,8),"No new arrivals yet."],
+  ["featured-picks-grid",[...products].slice(0,8),"No featured products yet."],
   ["special-offers-grid",products.filter(p=>Number(p.compare_at_price)>Number(p.Price)),"No special offers at the moment."]
  ];
- shelves.forEach(([id,list,empty])=>{const box=get(id);if(!box)return;box.replaceChildren();if(!list.length){const p=document.createElement("p");p.textContent=empty;box.append(p);return}list.forEach(p=>box.append(makeCard(p)))});
+ shelves.forEach(([id,list,empty])=>{
+  const box=get(id);if(!box)return;box.replaceChildren();box.classList.add("collection-carousel");
+  if(!list.length){const p=document.createElement("p");p.textContent=empty;box.append(p);return}
+  list.forEach(p=>box.append(makeCard(p)));
+  if(list.length>2){
+   const controls=document.createElement("div");controls.className="collection-carousel-controls";
+   const prev=document.createElement("button");prev.type="button";prev.textContent="←";prev.setAttribute("aria-label","Previous products");
+   const next=document.createElement("button");next.type="button";next.textContent="→";next.setAttribute("aria-label","Next products");
+   const dots=document.createElement("span");dots.className="carousel-position";dots.textContent="1 / "+list.length;
+   controls.append(prev,dots,next);box.insertAdjacentElement("afterend",controls);
+   let index=0,timer;
+   const step=()=>Math.max(1,box.firstElementChild?.getBoundingClientRect().width+12||200);
+   const update=()=>{index=Math.max(0,Math.min(list.length-1,Math.round(box.scrollLeft/step())));dots.textContent=(index+1)+" / "+list.length};
+   const move=dir=>{box.scrollBy({left:dir*step(),behavior:"smooth"});};
+   prev.addEventListener("click",()=>move(-1));next.addEventListener("click",()=>move(1));
+   box.addEventListener("scroll",()=>{update();},{passive:true});
+   const start=()=>{clearInterval(timer);timer=setInterval(()=>{if(box.matches(":hover")||box.contains(document.activeElement))return;const max=box.scrollWidth-box.clientWidth;if(box.scrollLeft>=max-4)box.scrollTo({left:0,behavior:"smooth"});else move(1)},3000)};
+   ["pointerdown","touchstart","focusin"].forEach(ev=>box.addEventListener(ev,()=>clearInterval(timer),{passive:true}));
+   ["pointerup","touchend","focusout"].forEach(ev=>box.addEventListener(ev,start,{passive:true}));
+   start();
+  }
+ });
+ setupCategoryPhotos();
+}
+function setupCategoryPhotos(){
+ const categories=[["Clothes",["clothing","clothes","apparel"]],["Shoes",["shoes","footwear"]],["Bags",["bags","bag"]],["Accessories",["accessories","accessory"]],["Phones",["phones","phone"]],["Phone Accessories",["phone accessories","phone accessory"]],["Networking & Internet",["networking & internet","networking","internet"]],["Power & Energy",["power & energy","power","energy"]],["Home Appliances",["home appliances","appliances"]]];
+ document.querySelectorAll(".category-strip a[data-filter]").forEach(link=>{
+  const key=link.dataset.filter.toLowerCase(),aliases=categories.find(c=>c[0].toLowerCase()===key)?.[1]||[key];
+  const product=products.find(p=>aliases.includes(String(p.Category||"").toLowerCase())&&p.Image_Url);
+  if(!product)return;
+  link.classList.add("has-category-photo");
+  const img=document.createElement("img");img.src=product.Image_Url;img.alt="";img.loading="lazy";img.className="category-photo";
+  link.prepend(img);
+ });
+}
+async function loadHomepageReviews(){
+ const track=get("home-review-track");if(!track)return;
+ try{
+  const {data,error}=await getDb().from("product_reviews").select("id,product_id,reviewer_name,rating,review_text,created_at,is_verified_purchase").eq("is_approved",true).order("created_at",{ascending:false}).limit(8);
+  if(error)throw error;
+  const reviews=data||[];track.replaceChildren();
+  if(!reviews.length){const empty=document.createElement("p");empty.className="review-loading";empty.textContent="Customer reviews will appear here as approved reviews come in.";track.append(empty);return}
+  reviews.forEach(r=>{
+   const card=document.createElement("article");card.className="home-review-card";
+   const stars=document.createElement("div");stars.className="home-review-stars";stars.textContent="★".repeat(Math.max(0,Math.min(5,Number(r.rating))))+"☆".repeat(5-Math.max(0,Math.min(5,Number(r.rating))));
+   const quote=document.createElement("p");quote.textContent="“"+r.review_text+"”";
+   const name=document.createElement("strong");name.textContent=r.reviewer_name||"KENNIX customer";
+   const verified=document.createElement("small");verified.textContent=r.is_verified_purchase?"✓ Verified purchase":"Customer review";
+   card.append(stars,quote,name,verified);track.append(card);
+  });
+ }catch(err){console.warn("Homepage reviews unavailable",err);track.replaceChildren();const msg=document.createElement("p");msg.className="review-loading";msg.textContent="Customer reviews are temporarily unavailable.";track.append(msg)}
+}
+function setupJoggersCountdown(){
+ const node=get("joggers-countdown");if(!node)return;
+ const start=new Date("2026-11-30T00:00:00+01:00"),end=new Date("2026-12-14T00:00:00+01:00");
+ const tick=()=>{const now=new Date();let target=now<start?start:end;let diff=Math.max(0,target-now);const days=Math.floor(diff/86400000),hours=Math.floor(diff%86400000/3600000),mins=Math.floor(diff%3600000/60000),secs=Math.floor(diff%60000/1000);
+  node.innerHTML=now<start?"SALE STARTS IN <strong>"+days+"d "+hours+"h "+mins+"m "+secs+"s</strong>":now<end?"SALE ENDS IN <strong>"+days+"d "+hours+"h "+mins+"m "+secs+"s</strong>":"<strong>SALE ENDED</strong>";
+ };tick();setInterval(tick,1000);
 }
 function setCategory(value,scroll=true){activeCategory=value||"All";document.querySelectorAll(".filter").forEach(b=>b.classList.toggle("active",categoryKey(b.dataset.filter)===categoryKey(activeCategory)));renderProducts();if(scroll)get("shop")?.scrollIntoView({behavior:"smooth"})}
 function setupFilters(){document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();setCategory(b.dataset.filter)}));document.querySelectorAll("[data-shortcut]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();sortMode="featured";if(get("sort"))get("sort").value="featured";setCategory("All",false);get("shop")?.scrollIntoView({behavior:"smooth"})}))}
@@ -239,4 +296,4 @@ function setupTerms(){
  get("terms-decline")?.addEventListener("click",()=>{get("terms-decline-note").hidden=false;});
  get("open-terms")?.addEventListener("click",e=>{e.preventDefault();get("terms-decline-note").hidden=true;show();});
 }
-function init(){setupTerms();setupMenu();get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupNewsletter();renderCart();loadProducts()}init();
+function init(){setupTerms();setupMenu();get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupJoggersCountdown();setupNewsletter();renderCart();loadProducts()}init();
