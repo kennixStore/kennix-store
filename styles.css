@@ -1,6 +1,6 @@
 *{box-sizing:border-box} :root{--green:#022c22;--gold:#d4af37;--bg:#f7f7f2;--ink:#17231d;--muted:#778078;--line:#e3e8e1;--serif:'Playfair Display',Georgia,serif;--sans:'DM Sans',Arial,sans-serif}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}.announcement{height:42px;overflow:hidden;padding:0;display:flex;align-items:center;background:#251044;color:#fff;border-bottom:2px solid #d4af37;box-shadow:0 3px 14px rgba(25,12,43,.2)}
 .announcement-track{display:flex;align-items:stretch;gap:0;width:max-content;animation:kennixTicker 24s linear infinite}
-.announcement:hover .announcement-track{animation-play-state:paused}
+/* Announcement ticker keeps moving when tapped or hovered. */
 .announcement-item{display:inline-flex;align-items:center;min-height:42px;padding:0 38px;font-size:10px;font-weight:800;letter-spacing:1.15px;white-space:nowrap;color:#fff}
 .announcement-item:after{content:"✦";margin-left:38px;color:#e8c96b;font-size:12px}
 .announcement-item.offer{background:#54249a;color:#fff}.announcement-item.delivery{background:#123c68;color:#fff}.announcement-item.brand-note{background:#07543d;color:#fff}.announcement-item.joggers{background:#641f35;color:#fff}
