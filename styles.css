@@ -148,11 +148,13 @@
 
 
 /* KENNIX homepage refresh — coordinated color, responsive motion */
-.announcement{height:36px;overflow:hidden;padding:0;display:flex;align-items:center;background:#f0ebfb;color:#33215f;border-bottom:1px solid #e3d9f5}
-.announcement-track{display:flex;align-items:center;gap:0;width:max-content;animation:kennixTicker 24s linear infinite}
+.announcement{height:42px;overflow:hidden;padding:0;display:flex;align-items:center;background:#251044;color:#fff;border-bottom:2px solid #d4af37;box-shadow:0 3px 14px rgba(25,12,43,.2)}
+.announcement-track{display:flex;align-items:stretch;gap:0;width:max-content;animation:kennixTicker 24s linear infinite}
 .announcement:hover .announcement-track{animation-play-state:paused}
-.announcement-item{display:inline-flex;align-items:center;min-height:36px;padding:0 34px;font-size:9px;font-weight:800;letter-spacing:1.2px;white-space:nowrap}
-.announcement-item.offer{background:#eee5ff;color:#56329a}.announcement-item.delivery{background:#e6f2fb;color:#245b82}.announcement-item.brand-note{background:#f5f0ff;color:#654d8d}.announcement-item.joggers{background:#f7eddf;color:#80531e}
+.announcement-item{display:inline-flex;align-items:center;min-height:42px;padding:0 38px;font-size:10px;font-weight:800;letter-spacing:1.25px;white-space:nowrap;color:#fff}
+.announcement-item:after{content:"✦";margin-left:38px;color:#e8c96b;font-size:12px}
+.announcement-item.offer{background:#54249a;color:#fff}.announcement-item.delivery{background:#123c68;color:#fff}.announcement-item.brand-note{background:#07543d;color:#fff}.announcement-item.joggers{background:#641f35;color:#fff}
+.announcement-item.offer:before{content:"✦";margin-right:10px;color:#f2d27b}.announcement-item.delivery:before{content:"↗";margin-right:10px;color:#a9d9ff}.announcement-item.brand-note:before{content:"◆";margin-right:10px;color:#bce7cf}.announcement-item.joggers:before{content:"★";margin-right:10px;color:#f2d27b}
 @keyframes kennixTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .category-strip a.has-category-photo{position:relative;overflow:hidden;min-height:142px;padding:0 12px 12px;align-items:flex-end;color:#fff;background:#263c54}
 .category-strip a.has-category-photo:after{content:"";position:absolute;inset:25% 0 0;background:linear-gradient(0deg,#101a2bdc,transparent);z-index:0}
