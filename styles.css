@@ -182,3 +182,36 @@
 .review-loading{font-size:11px;color:var(--muted);padding:15px 0}
 @media(max-width:700px){.category-strip a.has-category-photo{min-height:118px}.joggers-sale{margin:14px 5% 22px;flex-direction:column;align-items:flex-start}.joggers-countdown{width:100%}.collection-carousel .collection-card{flex-basis:58%}.home-reviews{padding:38px 5%}}
 @media(prefers-reduced-motion:reduce){.announcement-track{animation:none}.category-strip .category-photo{transition:none}.collection-grid.collection-carousel{scroll-behavior:auto}}
+
+
+/* KENNIX visual depth refresh: richer surfaces, same calm palette */
+:root{--bg:#f6f5f0;--line:#e1e2dc}
+body{background-color:#f6f5f0;background-image:radial-gradient(ellipse at 8% 12%,rgba(191,174,231,.18),transparent 34%),radial-gradient(ellipse at 92% 28%,rgba(169,207,232,.17),transparent 32%),radial-gradient(ellipse at 45% 88%,rgba(225,204,157,.12),transparent 38%),repeating-linear-gradient(0deg,rgba(70,65,50,.012) 0,rgba(70,65,50,.012) 1px,transparent 1px,transparent 4px)}
+.site-header{background:rgba(248,248,243,.88);box-shadow:0 5px 24px rgba(27,44,37,.045)}
+.hero{background:radial-gradient(ellipse at 78% 18%,rgba(115,157,181,.3),transparent 35%),radial-gradient(ellipse at 15% 90%,rgba(135,105,183,.22),transparent 40%),linear-gradient(125deg,#062d25 0%,#123c3d 54%,#263a54 100%)}
+.promo-wrap{background:radial-gradient(ellipse at 12% 10%,rgba(212,175,55,.14),transparent 38%),linear-gradient(135deg,#f4f0e5,#e9eff3 58%,#eee8f7)}
+.category-strip a{background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(239,243,239,.96));box-shadow:0 8px 22px rgba(30,53,43,.055);border-color:rgba(206,216,207,.8)}
+.category-strip a.has-category-photo{box-shadow:0 10px 26px rgba(22,34,47,.14)}
+.shop-section{background:transparent}
+.home-collections{background:linear-gradient(145deg,rgba(255,255,255,.93),rgba(244,241,250,.94) 52%,rgba(237,245,248,.96));position:relative;isolation:isolate}
+.home-collections:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 95% 5%,rgba(170,196,225,.2),transparent 35%),radial-gradient(ellipse at 5% 95%,rgba(197,177,224,.16),transparent 38%)}
+.collection-card{box-shadow:0 8px 22px rgba(23,42,34,.07);border-color:rgba(220,225,219,.9)}
+.joggers-sale{position:relative;isolation:isolate;border:1px solid rgba(255,255,255,.85);box-shadow:0 16px 42px rgba(50,57,78,.09);background:radial-gradient(ellipse at 92% 12%,rgba(255,255,255,.9),transparent 36%),radial-gradient(ellipse at 8% 95%,rgba(197,174,230,.26),transparent 42%),linear-gradient(120deg,#eee8fb 0%,#e6f0f8 57%,#f5eddf 100%)}
+.joggers-sale:after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.24;background:repeating-linear-gradient(135deg,transparent 0,transparent 18px,rgba(255,255,255,.48) 19px,transparent 20px)}
+.joggers-sale h2{font-size:clamp(25px,3.4vw,38px);max-width:620px}
+.joggers-sale-copy>p:not(.eyebrow){line-height:1.6}
+.joggers-countdown{box-shadow:0 8px 22px rgba(49,66,89,.06);backdrop-filter:blur(8px)}
+.home-reviews{background:radial-gradient(ellipse at 90% 10%,rgba(179,204,226,.24),transparent 38%),linear-gradient(130deg,#edf2f5,#f2eef8 58%,#f7f3e9)}
+.manifesto{background:radial-gradient(ellipse at 15% 15%,rgba(255,255,255,.55),transparent 42%),linear-gradient(120deg,#e7eee8,#e9e9f3)}
+.newsletter{background:radial-gradient(ellipse at 90% 50%,rgba(199,183,228,.16),transparent 40%)}
+.trust-band{background:linear-gradient(100deg,#e9f1f5,#f2eff8,#f5f0e4)}
+.customer-service{background:radial-gradient(ellipse at 5% 90%,rgba(192,178,222,.13),transparent 38%)}
+@media(max-width:700px){
+ .joggers-sale{padding:25px 22px;margin:14px 5% 22px;gap:17px}
+ .joggers-sale h2{font-size:clamp(27px,7vw,34px);line-height:1.08;max-width:100%;margin:7px 0 10px}
+ .joggers-sale-copy>p:not(.eyebrow){font-size:9px;letter-spacing:.55px;max-width:310px}
+ .joggers-sale-copy>a{margin-top:8px;padding:11px 15px}
+ .joggers-countdown{min-width:0;padding:13px;width:100%;font-size:8px}
+ .joggers-countdown strong{font-size:17px}
+ .home-collections{background:linear-gradient(145deg,#fff 0%,#f3eff9 58%,#edf4f7 100%)}
+}
