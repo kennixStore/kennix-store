@@ -313,3 +313,16 @@ body{font-family:var(--sans)}
  .promo-slide:after{width:130px;height:130px;right:0}
  .promo-art{font-size:48px;letter-spacing:-4px;padding:17px 15px}
 }
+
+
+/* KENNIX announcement: one coordinated premium color system */
+.announcement{background:#251044!important;color:#fff;border-bottom:2px solid #d4af37}
+.announcement-track{animation-play-state:running!important}
+.announcement:hover .announcement-track{animation-play-state:running!important}
+.announcement-item,
+.announcement-item.offer,
+.announcement-item.delivery,
+.announcement-item.brand-note,
+.announcement-item.joggers{background:transparent!important;color:#fff!important}
+.announcement-item:before,
+.announcement-item:after{color:#e8c96b!important}
