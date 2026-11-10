@@ -145,3 +145,40 @@
 .review-form textarea{resize:vertical}
 .review-form button{width:100%}
 .review-status{font-size:10px;color:var(--green);margin:0}
+
+
+/* KENNIX homepage refresh — coordinated color, responsive motion */
+.announcement{height:36px;overflow:hidden;padding:0;display:flex;align-items:center;background:#f0ebfb;color:#33215f;border-bottom:1px solid #e3d9f5}
+.announcement-track{display:flex;align-items:center;gap:0;width:max-content;animation:kennixTicker 24s linear infinite}
+.announcement:hover .announcement-track{animation-play-state:paused}
+.announcement-item{display:inline-flex;align-items:center;min-height:36px;padding:0 34px;font-size:9px;font-weight:800;letter-spacing:1.2px;white-space:nowrap}
+.announcement-item.offer{background:#eee5ff;color:#56329a}.announcement-item.delivery{background:#e6f2fb;color:#245b82}.announcement-item.brand-note{background:#f5f0ff;color:#654d8d}.announcement-item.joggers{background:#f7eddf;color:#80531e}
+@keyframes kennixTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.category-strip a.has-category-photo{position:relative;overflow:hidden;min-height:142px;padding:0 12px 12px;align-items:flex-end;color:#fff;background:#263c54}
+.category-strip a.has-category-photo:after{content:"";position:absolute;inset:25% 0 0;background:linear-gradient(0deg,#101a2bdc,transparent);z-index:0}
+.category-strip .category-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
+.category-strip a.has-category-photo:hover .category-photo{transform:scale(1.06)}
+.category-strip a.has-category-photo>b{display:none}
+.category-strip a.has-category-photo span,.category-strip a.has-category-photo> :last-child{position:relative;z-index:1;color:#fff}
+.category-strip a.has-category-photo small{color:#e9edf4}
+.joggers-sale{margin:20px 6% 30px;padding:clamp(25px,5vw,48px);border-radius:12px;background:linear-gradient(115deg,#eee7fb 0%,#e8f1fa 58%,#f8efdf 100%);display:flex;align-items:center;justify-content:space-between;gap:25px;overflow:hidden}
+.joggers-sale h2{font:600 clamp(27px,4vw,43px)/1.12 var(--serif);color:#30234f;margin:8px 0}
+.joggers-sale h2 em{color:#315f83}.joggers-sale-copy>p:not(.eyebrow){font-size:10px;letter-spacing:.8px;color:#4d5360}
+.joggers-sale-copy>p strong{color:#8a5a16;font-size:14px}
+.joggers-sale-copy>a{display:inline-block;margin-top:12px;padding:12px 18px;background:#56329a;color:#fff;font-size:9px;font-weight:800;letter-spacing:1px;border-radius:3px}
+.joggers-countdown{min-width:175px;padding:18px;background:#ffffffb8;border:1px solid #fff;border-radius:8px;color:#563d70;font-size:9px;letter-spacing:1px;text-align:center}
+.joggers-countdown strong{display:block;margin-top:8px;font-size:19px;letter-spacing:0;color:#315f83}
+.collection-grid.collection-carousel{display:flex;overflow-x:auto;gap:12px;padding:2px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:thin;scroll-behavior:smooth}
+.collection-carousel .collection-card{flex:0 0 calc(25% - 9px);min-width:0;scroll-snap-align:start}
+.collection-carousel-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:5px 0 16px}
+.collection-carousel-controls button{width:32px;height:32px;border:1px solid var(--line);border-radius:50%;background:#fff;color:#4b3b70}
+.carousel-position{font-size:9px;color:var(--muted)}
+.home-reviews{padding:48px 6%;background:#f0f5fa}
+.home-review-track{display:flex;gap:13px;overflow-x:auto;padding:8px 2px 16px;scroll-snap-type:x mandatory}
+.home-review-card{flex:0 0 min(300px,82vw);background:#fff;border:1px solid #dfe8ef;border-radius:8px;padding:18px;scroll-snap-align:start}
+.home-review-stars{color:#b28728;letter-spacing:2px;font-size:14px}
+.home-review-card p{font:14px/1.65 var(--serif);color:#35485a;min-height:65px}
+.home-review-card strong,.home-review-card small{display:block}.home-review-card strong{font-size:11px;color:#203e58}.home-review-card small{font-size:9px;color:#6e8292;margin-top:5px}
+.review-loading{font-size:11px;color:var(--muted);padding:15px 0}
+@media(max-width:700px){.category-strip a.has-category-photo{min-height:118px}.joggers-sale{margin:14px 5% 22px;flex-direction:column;align-items:flex-start}.joggers-countdown{width:100%}.collection-carousel .collection-card{flex-basis:58%}.home-reviews{padding:38px 5%}}
+@media(prefers-reduced-motion:reduce){.announcement-track{animation:none}.category-strip .category-photo{transition:none}.collection-grid.collection-carousel{scroll-behavior:auto}}
