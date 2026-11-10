@@ -690,7 +690,8 @@ form.addEventListener("submit", async event => {
       Price: price,
       compare_at_price: originalPrice,
       Image_Url: imageData.publicUrl,
-      Is_active: true
+      Is_active: true,
+      created_at: new Date().toISOString()
     });
 
   if (insertError) {
