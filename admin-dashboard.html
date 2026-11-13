@@ -232,7 +232,7 @@ function loadDashboardStats(){
  document.getElementById("statConfirmed").textContent=fmt(orders);
  document.getElementById("statPending").textContent="0";
 }
-document.getElementById("refreshDashboardStats").addEventListener("click",loadDashboardStats);
+document.getElementById("refreshDashboardStats").addEventListener("click",()=>window.location.reload());
 /* SUPPLIER MANAGEMENT */
 async function loadSuppliers(){
  const box=document.getElementById("supplierList");box.textContent="Loading suppliers...";
