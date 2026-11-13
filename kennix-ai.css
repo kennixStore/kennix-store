@@ -15,8 +15,6 @@
 .ka-assistant{align-self:flex-start;background:#f3f3f5;color:#292630;border:1px solid #e8e7eb;border-bottom-left-radius:4px}
 .ka-message-text{white-space:pre-wrap}
 .ka-message-actions{display:flex;gap:7px;margin-top:8px}
-.ka-listen{border:1px solid #ded4ed;background:#fff;color:#5427a8;border-radius:7px;padding:5px 8px;font:600 10px system-ui;cursor:pointer}
-.ka-listen.ka-speaking{background:#f0eafb;border-color:#7650b8}
 .ka-sources{display:flex;flex-direction:column;gap:5px;margin-top:10px;padding-top:8px;border-top:1px solid #e8e7eb}
 .ka-sources-title{font-size:10px;font-weight:800;color:#5427a8;letter-spacing:.08em}
 .ka-sources a{font-size:11px;color:#5427a8;text-decoration:underline;overflow-wrap:anywhere}
@@ -26,16 +24,8 @@
 #ka-input{flex:1;min-width:0;resize:vertical;min-height:43px;max-height:110px;border-radius:11px;border:1px solid #ddd7e7;background:#fff;color:#24212b;padding:11px;font:13px system-ui;outline:none}
 #ka-input::placeholder{color:#898392}
 #ka-input:focus{border-color:#7650b8;box-shadow:0 0 0 2px #5427a81a}
-#ka-send,#ka-attach,#ka-mic{border:0;border-radius:10px;background:#5427a8;color:#fff;font-weight:800;min-width:42px;height:43px;cursor:pointer}
 #ka-attach{background:#f3eff9;color:#5427a8;border:1px solid #ded4ed;font-size:20px}
-#ka-mic{background:#f3eff9;color:#5427a8;border:1px solid #ded4ed;font-size:16px}
-#ka-mic.ka-listening{background:#fee9eb;color:#a51f35;border-color:#efb8c0}
 #ka-send:disabled{opacity:.45;cursor:wait}
-.ka-options{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;min-height:22px}
-.ka-read-toggle{display:flex;align-items:center;gap:6px;color:#625b6d;font-size:10px;cursor:pointer}
-.ka-read-toggle input{accent-color:#5427a8;width:13px;height:13px;margin:0}
-#ka-stop-audio{border:0;background:transparent;color:#5427a8;font:600 10px system-ui;padding:3px 5px;cursor:pointer}
-#ka-stop-audio:disabled{opacity:.35;cursor:default}
 .ka-status{font-size:10px;color:#817b89;margin-top:5px;min-height:14px;line-height:1.4}
 #ka-file-input{display:none}
 @media(max-width:480px){
