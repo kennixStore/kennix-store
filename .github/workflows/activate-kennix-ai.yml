@@ -34,7 +34,7 @@ jobs:
 
       - name: Store OpenAI key in Supabase Edge Function secrets
         shell: bash
-        run: supabase secrets set "OPENAI_API_KEY=$OPENAI_API_KEY" --project-ref "$SUPABASE_PROJECT_ID" --yes
+        run: supabase secrets set "OPENAI_API_KEY=$OPENAI_API_KEY" --remote="$SUPABASE_PROJECT_ID" --yes
 
       - name: Apply KENNIX AI database migration
         shell: bash
@@ -42,7 +42,7 @@ jobs:
 
       - name: Deploy KENNIX AI Edge Function
         shell: bash
-        run: supabase functions deploy kennix-ai --project-ref "$SUPABASE_PROJECT_ID"
+        run: supabase functions deploy kennix-ai --remote="$SUPABASE_PROJECT_ID" --use-api
 
       - name: Verify deployment endpoint responds
         shell: bash
