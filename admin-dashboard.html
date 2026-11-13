@@ -204,10 +204,18 @@ const demoBaseOrders=3128;
 const demoVisitorSteps=[0,0,0,0,0,0,0,1,1,2,2,3];
 const demoOrderStep=6;
 const demoStorageKey="kennix_dashboard_demo_visitors_v1";
+const zeroStreakKey="kennix_dashboard_zero_streak_v1";
 function loadDashboardStats(){
  let visitors=Number(localStorage.getItem(demoStorageKey));
- if(!Number.isFinite(visitors)||visitors<demoBaseVisitors)visitors=demoBaseVisitors;
- else visitors+=demoVisitorStep;
+ let zeroStreak=Number(localStorage.getItem(zeroStreakKey))||0;
+ if(!Number.isFinite(visitors)||visitors<demoBaseVisitors){visitors=demoBaseVisitors;zeroStreak=0;}
+ else {
+  let visitorIncrease=demoVisitorSteps[Math.floor(Math.random()*demoVisitorSteps.length)];
+  if(zeroStreak>=15)visitorIncrease=1+Math.floor(Math.random()*3);
+  if(visitorIncrease===0)zeroStreak++;else zeroStreak=0;
+  visitors+=visitorIncrease;
+ }
+ localStorage.setItem(zeroStreakKey,String(zeroStreak));
  localStorage.setItem(demoStorageKey,String(visitors));
  const addedVisitors=visitors-demoBaseVisitors;
  const orders=demoBaseOrders+Math.floor(addedVisitors/100)*demoOrderStep;
