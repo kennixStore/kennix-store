@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#022c22"><link rel="manifest" href="/manifest.webmanifest"><title>KENNIX — Shop Like a Billionaire.</title>
+<meta name="theme-color" content="#022c22"><link rel="manifest" href="manifest.webmanifest"><title>KENNIX — Shop Like a Billionaire.</title>
 <meta name="description" content="Shop fashion, phones, accessories, electronics, networking devices, power solutions and home appliances at KENNIX, a Nigerian online retail brand founded by Eze Kenechukwu Kennedy (Kenny).">
 <meta name="msvalidate.01" content="6C82956FFC77B15C71ECAE7DAE87824D" />
 <link rel="canonical" href="https://www.kennix.com.ng/">
@@ -241,7 +241,7 @@
  dialog.addEventListener("click",event=>{if(event.target===dialog)close(true)});
  document.addEventListener("keydown",event=>{if(event.key==="Escape"&&dialog.classList.contains("is-visible"))close(true)});
  if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(error=>console.warn("KENNIX app setup unavailable:",error)));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(error=>console.warn("KENNIX app setup unavailable:",error)));
  }
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",waitForTerms,{once:true});
  else waitForTerms();
