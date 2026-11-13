@@ -57,6 +57,7 @@ Deno.serve(async(req)=>{
   let sources:any[]=[];
   let lastFailure:any=null;
   let usedProvider="";
+  const providersTried:string[]=[];
   const textOnlyAttachment=!!body.attachment&&typeof body.attachment.text==="string";
   const hasBinaryAttachment=!!body.attachment&&!textOnlyAttachment;
   const openAiMessages:any[]=[
@@ -103,6 +104,7 @@ Deno.serve(async(req)=>{
    }finally{clearTimeout(timeout);}
   }});
   for(const provider of providers){
+   providersTried.push(provider.name);
    try{reply=await provider.run();usedProvider=provider.name;break;}
    catch(e:any){
     const status=Number(e?.status||((e?.name==="AbortError")?504:503));
@@ -115,7 +117,7 @@ Deno.serve(async(req)=>{
   if(!reply){
    const status=lastFailure?.http_status===429?429:([500,502,503,504].includes(lastFailure?.http_status)?503:502);
    console.error("All KENNIX AI providers failed",lastFailure);
-   return json({error:"KENNIX AI is temporarily unavailable. Please try again shortly.",diagnostic:{...lastFailure,models_tried:modelsTried}},status);
+   return json({error:"KENNIX AI is temporarily unavailable. Please try again shortly.",diagnostic:{...lastFailure,providers_tried:providersTried}},status);
   }
   return json({reply,sources,provider:usedProvider});
  }catch(e){console.error("KENNIX AI failed",e);return json({error:"Something went wrong. Please try again."},500);}
