@@ -19,7 +19,8 @@ panel.innerHTML=
   '<div class="ka-file" id="ka-file-name" aria-live="polite"></div>'+
   '<div class="ka-compose-row">'+
     '<button id="ka-attach" type="button" aria-label="Attach image or document" title="Attach image, PDF, TXT or CSV">＋</button>'+
-    '<textarea id="ka-input" rows="1" maxlength="5000" placeholder="Ask KENNIX anything..." aria-label="Message KENNIX AI"></textarea>'+
+    '<textarea id="ka-input" rows="1" maxlength="5000" placeholder="Ask KENNIX anything..." aria-label="Message KENNIX AI"></textarea>' +
+  '<button id="ka-mic" type="button" aria-label="Speak your message" title="Speak your message">🎙</button>'+
     '<button id="ka-send" type="button" aria-label="Send message">➤</button>'+
   '</div>'+
   '<input id="ka-file-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf,.txt,.csv,text/plain,text/csv">'+
@@ -30,6 +31,7 @@ document.body.append(launcher,panel);
 const body=panel.querySelector("#ka-body");
 const input=panel.querySelector("#ka-input");
 const send=panel.querySelector("#ka-send");
+const mic=panel.querySelector("#ka-mic");
 const fileInput=panel.querySelector("#ka-file-input");
 const fileName=panel.querySelector("#ka-file-name");
 const status=panel.querySelector("#ka-status");
@@ -68,6 +70,11 @@ function addMessage(text,role,controls){
   body.append(bubble);
   scrollBottom();
   return {container:bubble,textElement:content};
+}
+function speakText(text){
+  if(!("speechSynthesis" in window)||!("SpeechSynthesisUtterance" in window)){status.textContent="Voice playback is not supported by this browser.";return;}
+  speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(text);utterance.lang="en-NG";utterance.rate=1;speechSynthesis.speak(utterance);
 }
 function renderHistory(){
   if(!history.length)return;
@@ -113,6 +120,7 @@ function isTextFile(file){
   return /\.(txt|csv)$/i.test(file.name)||file.type==="text/plain"||file.type==="text/csv";
 }
 launcher.addEventListener("click",()=>{panel.classList.add("open");input.focus();});
+if(mic){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(SR){const recognition=new SR();recognition.lang="en-NG";recognition.interimResults=false;recognition.maxAlternatives=1;recognition.onstart=()=>{mic.textContent="●";status.textContent="Listening… speak now.";};recognition.onresult=e=>{const spoken=e.results&&e.results[0]&&e.results[0][0]?e.results[0][0].transcript:"";if(spoken)input.value=(input.value?input.value+" ":"")+spoken;input.focus();};recognition.onerror=()=>{status.textContent="Microphone issue. Check browser permission.";};recognition.onend=()=>{mic.textContent="🎙";};mic.addEventListener("click",()=>{try{recognition.start();}catch(_){status.textContent="Microphone is already listening.";}});}else{mic.addEventListener("click",()=>{status.textContent="Voice input is not supported by this browser. Try Chrome.";});}}
 panel.querySelector(".ka-close").addEventListener("click",()=>{
   panel.classList.remove("open");
 });
@@ -185,6 +193,9 @@ async function submit(){
     if(!response.ok)throw new Error(data.error||"KENNIX AI is temporarily unavailable. Please try again.");
     const answer=data.reply||"I couldn't generate a response. Please try again.";
     thinking.textElement.textContent=answer;
+    const voiceActions=document.createElement("div");voiceActions.className="ka-message-actions";
+    [["🔊 Listen",()=>speakText(answer)],["Pause",()=>{if(window.speechSynthesis)speechSynthesis.pause();}],["Resume",()=>{if(window.speechSynthesis)speechSynthesis.resume();}],["Stop",()=>{if(window.speechSynthesis)speechSynthesis.cancel();}]].forEach(([label,action])=>{const b=document.createElement("button");b.type="button";b.className="ka-voice-btn";b.textContent=label;b.addEventListener("click",action);voiceActions.append(b);});
+    thinking.container.append(voiceActions);
     appendSources(thinking,data.sources);
     history.push({role:"assistant",content:answer});
     history=history.slice(-12);
