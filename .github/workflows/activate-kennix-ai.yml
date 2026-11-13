@@ -2,6 +2,10 @@ name: Activate KENNIX AI
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'supabase/functions/kennix-ai/index.ts'
+      - '.github/workflows/activate-kennix-ai.yml'
 
 permissions:
   contents: read
