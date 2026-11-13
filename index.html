@@ -1,7 +1,15 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#022c22"><link rel="manifest" href="manifest.webmanifest"><title>KENNIX — Shop Like a Billionaire.</title>
+<meta name="theme-color" content="#022c22"><link rel="manifest" href="manifest.webmanifest">
+<script>
+/* Capture Chromium's install event as early as possible. */
+window.__kennixInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  window.__kennixInstallPrompt = event;
+});
+</script><title>KENNIX — Shop Like a Billionaire.</title>
 <meta name="description" content="Shop fashion, phones, accessories, electronics, networking devices, power solutions and home appliances at KENNIX, a Nigerian online retail brand founded by Eze Kenechukwu Kennedy (Kenny).">
 <meta name="msvalidate.01" content="6C82956FFC77B15C71ECAE7DAE87824D" />
 <link rel="canonical" href="https://www.kennix.com.ng/">
@@ -193,7 +201,7 @@
  const KEY="kennix_install_prompt_dismissed_at_v2";
  const WEEK=7*24*60*60*1000;
  const standalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
- let installPrompt=null,shown=false;
+ let installPrompt=window.__kennixInstallPrompt||null,shown=false;
  const close=remember=>{
   dialog.classList.remove("is-visible");
   if(remember){try{localStorage.setItem(KEY,String(Date.now()))}catch{}}
@@ -214,9 +222,11 @@
  window.addEventListener("beforeinstallprompt",event=>{
   event.preventDefault();
   installPrompt=event;
+  window.__kennixInstallPrompt=event;
  });
  window.addEventListener("appinstalled",()=>{
   installPrompt=null;
+  window.__kennixInstallPrompt=null;
   close(true);
   try{localStorage.setItem(KEY,String(Date.now()))}catch{}
  });
@@ -226,6 +236,7 @@
    installPrompt.prompt();
    const choice=await installPrompt.userChoice;
    installPrompt=null;
+   window.__kennixInstallPrompt=null;
    if(choice?.outcome==="accepted"){close(true);return}
    close(true);
    return;
