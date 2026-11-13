@@ -17,6 +17,23 @@ Deno.serve(async(req)=>{
   const limited=await fetch(`${url}/rest/v1/rpc/kennix_ai_allow_request`,{method:"POST",headers:{"Content-Type":"application/json","apikey":service,"Authorization":`Bearer ${service}`},body:JSON.stringify({p_ip:ip})});
   if(!limited.ok)return json({error:"KENNIX AI is temporarily busy. Please try again shortly."},503);
   if(await limited.json()!==true)return json({error:"You’ve reached the short-term message limit. Please wait a minute and try again."},429);
+  let catalogueContext = "Live product catalogue is temporarily unavailable. Do not guess current products, prices or stock.";
+  try {
+    const catalogueResponse = await fetch(`${url}/rest/v1/products?select=Name,Category,Description,Price&Is_active=eq.true&limit=40`, {
+      headers: { "apikey": service, "Authorization": `Bearer ${service}` }
+    });
+    if (catalogueResponse.ok) {
+      const products = await catalogueResponse.json();
+      if (Array.isArray(products)) {
+        catalogueContext = products.length
+          ? "LIVE KENNIX PRODUCT CATALOGUE (active products only; use these exact names, categories, descriptions and prices; stock availability is not included):\\n" +
+            products.map((p:any) => `- ${p.Name} | ${p.Category} | ₦${p.Price} | ${String(p.Description || "").slice(0,180)}`).join("\\n")
+          : "The live KENNIX product catalogue currently returned no active products. Do not invent products or prices.";
+      }
+    }
+  } catch (catalogueError) {
+    console.error("KENNIX catalogue lookup failed", catalogueError);
+  }
   const input:any[]=messages.map((m:any)=>({role:m.role,content:m.content}));
   if(body.attachment){
    const a=body.attachment;
@@ -28,7 +45,7 @@ Deno.serve(async(req)=>{
    else content.push({type:"input_file",filename:String(a.name||"upload").slice(0,120),file_data:a.data,detail:"auto"});
    input[input.length-1]={role:"user",content};
   }
-  const ai=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},body:JSON.stringify({model:"gpt-6-astra",instructions:SYSTEM,input,tools:[{type:"web_search"}],max_output_tokens:1400,reasoning:{effort:"medium"},store:false})});
+  const ai=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},body:JSON.stringify({model:"gpt-6-astra",instructions:SYSTEM+"\\n\\n"+catalogueContext,input,tools:[{type:"web_search"}],max_output_tokens:1400,reasoning:{effort:"medium"},store:false})});
   const result=await ai.json();
   if(!ai.ok){console.error("OpenAI API error",ai.status,result?.error?.type||"unknown");return json({error:"KENNIX AI couldn't complete that request. Please try again."},502);}
   const reply=(result.output||[]).flatMap((x:any)=>x.content||[]).filter((x:any)=>x.type==="output_text").map((x:any)=>x.text).join("\n").trim();
