@@ -32,7 +32,7 @@ Deno.serve(async(req)=>{
    contents[contents.length-1]={role:"user",parts};
   }
   const systemInstruction=SYSTEM+"\n\n"+catalogueContext;
-  const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
+  const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
   const result=await response.json();
   if(!response.ok){const providerCode=String(result?.error?.status||"UNKNOWN").slice(0,80);const providerMessage=String(result?.error?.message||"No provider message returned").replace(/[\r\n]+/g," ").slice(0,240);console.error("Gemini API error",response.status,providerCode,providerMessage);return json({error:"KENNIX AI provider request failed.",diagnostic:{http_status:response.status,provider_code:providerCode,provider_message:providerMessage}},502);}
   const reply=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("\n").trim();
