@@ -52,6 +52,65 @@ jobs:
             echo "No AI provider keys supplied; deploying health endpoint only."
           fi
 
+      - name: Validate AI provider credentials without generating tokens
+        shell: bash
+        run: |
+          set +e
+          check_result() {
+            label="$1"
+            status="$2"
+            body="$3"
+            echo "$label HTTP status: ${status:-000}"
+            if [ "$status" != "200" ]; then
+              code=$(jq -r '.error.status // .error.code // .code // empty' "$body" 2>/dev/null | head -c 100)
+              [ -z "$code" ] || echo "$label provider error code: $code"
+            fi
+          }
+
+          if [ -n "$GEMINI_API_KEY" ]; then
+            body=$(mktemp)
+            status=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
+              "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite" \
+              -H "x-goog-api-key: $GEMINI_API_KEY" || true)
+            check_result "Gemini model metadata (no generation)" "$status" "$body"
+            rm -f "$body"
+          else
+            echo "Gemini key: NOT CONFIGURED"
+          fi
+
+          if [ -n "$GROQ_API_KEY" ]; then
+            body=$(mktemp)
+            status=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
+              "https://api.groq.com/openai/v1/models" \
+              -H "Authorization: Bearer $GROQ_API_KEY" || true)
+            check_result "Groq model catalogue (no generation)" "$status" "$body"
+            model="${GROQ_MODEL:-openai/gpt-oss-20b}"
+            if [ "$status" = "200" ]; then
+              if jq -e --arg model "$model" '.data[]? | select(.id == $model)' "$body" >/dev/null 2>&1; then
+                echo "Configured Groq model is listed: $model"
+              else
+                echo "Configured Groq model is NOT listed: $model"
+              fi
+            fi
+            rm -f "$body"
+          else
+            echo "Groq key: NOT CONFIGURED"
+          fi
+
+          if [ -n "$OPENROUTER_API_KEY" ]; then
+            body=$(mktemp)
+            status=$(curl -sS --max-time 15 -o "$body" -w "%{http_code}" \
+              "https://openrouter.ai/api/v1/key" \
+              -H "Authorization: Bearer $OPENROUTER_API_KEY" || true)
+            check_result "OpenRouter key validation (no generation)" "$status" "$body"
+            if [ "$status" = "200" ]; then
+              echo "OpenRouter free-tier flag: $(jq -r '.data.is_free_tier // "unknown"' "$body" 2>/dev/null)"
+            fi
+            rm -f "$body"
+          else
+            echo "OpenRouter key: NOT CONFIGURED"
+          fi
+
       - name: Deploy KENNIX AI Edge Function
         shell: bash
         run: supabase functions deploy kennix-ai --remote="$SUPABASE_PROJECT_ID" --use-api --yes
