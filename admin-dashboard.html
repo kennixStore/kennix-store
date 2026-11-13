@@ -38,9 +38,22 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 .admin-panel input,.admin-panel textarea,.admin-panel select{border-radius:6px}
 .admin-back{width:auto;background:#e9eee8;color:#022c22;padding:9px 13px;margin:0 0 12px}
 @media(max-width:650px){body{padding:10px}.admin-header{padding:17px;border-radius:9px}.admin-header h1{font-size:21px}.admin-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.admin-tab{min-height:82px;padding:11px}.admin-tab strong{font-size:12px}.admin-tab span{font-size:10px}.admin-panel{padding:13px;margin-bottom:12px}}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:18px 0}.stat-card{background:#f5f8f4;border:1px solid #e1e8df;border-radius:14px;padding:16px;min-height:88px}.stat-card span{display:block;color:#58635e;font-size:14px}.stat-card strong{display:block;color:#022c22;font-size:25px;margin-top:8px;overflow-wrap:anywhere}.guide-step{background:#f8faf7;border:1px solid #e1e8df;border-radius:10px;padding:14px;margin:12px 0}.guide-step h3{margin:0 0 8px;color:#022c22}.guide-step ol,.guide-step ul{padding-left:22px;line-height:1.65}.guide-step p{line-height:1.6}</style>
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:18px 0}.stat-card{background:#f5f8f4;border:1px solid #e1e8df;border-radius:14px;padding:16px;min-height:88px}.stat-card span{display:block;color:#58635e;font-size:14px}.stat-card strong{display:block;color:#022c22;font-size:25px;margin-top:8px;overflow-wrap:anywhere}.guide-step{background:#f8faf7;border:1px solid #e1e8df;border-radius:10px;padding:14px;margin:12px 0}.guide-step h3{margin:0 0 8px;color:#022c22}.guide-step ol,.guide-step ul{padding-left:22px;line-height:1.65}.guide-step p{line-height:1.6}
+/* KENNIX three-second shopping-bag page loader */
+.kennix-loader{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;background:radial-gradient(circle at 50% 42%,#183d31 0%,#022c22 58%,#011710 100%);opacity:1;visibility:visible;transition:opacity .35s ease,visibility .35s ease}
+.kennix-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.kennix-loader-scene{width:112px;height:112px;display:grid;place-items:center;perspective:600px}
+.kennix-bag{position:relative;width:66px;height:66px;border-radius:9px 9px 13px 13px;background:linear-gradient(135deg,#fff 0%,#e8e5f4 52%,#b9a6e8 100%);box-shadow:0 15px 35px #0005,inset -8px -5px 12px #7661a522;transform-style:preserve-3d;animation:kennixBagTurn 1.15s cubic-bezier(.55,.05,.35,.95) infinite}
+.kennix-bag:before{content:"";position:absolute;left:19px;top:-19px;width:26px;height:24px;border:5px solid #d4af37;border-bottom:0;border-radius:18px 18px 0 0;transform:translateZ(-2px)}
+.kennix-bag:after{content:"";position:absolute;left:0;right:0;top:0;height:15px;border-radius:9px 9px 2px 2px;background:linear-gradient(110deg,#fff,#d8cbed);transform-origin:top center;animation:kennixBagFlap 1.15s ease-in-out infinite}
+.kennix-bag-shine{position:absolute;left:10px;top:21px;width:8px;height:28px;border-radius:8px;background:#fff9;filter:blur(2px)}
+@keyframes kennixBagTurn{0%{transform:rotateY(0) rotateZ(-5deg) translateY(0)}50%{transform:rotateY(180deg) rotateZ(5deg) translateY(-5px)}100%{transform:rotateY(360deg) rotateZ(-5deg) translateY(0)}}
+@keyframes kennixBagFlap{0%,100%{transform:rotateX(0)}50%{transform:rotateX(-28deg)}}
+@media(prefers-reduced-motion:reduce){.kennix-bag,.kennix-bag:after{animation:none}}
+</style>
 </head>
-<body><div class="admin-shell"><header class="admin-header">
+<body><div id="kennix-page-loader" class="kennix-loader" role="status" aria-label="Loading KENNIX"><div class="kennix-loader-scene"><div class="kennix-bag"><span class="kennix-bag-shine"></span></div></div></div>
+<div class="admin-shell"><header class="admin-header">
 <div><h1>KENNIX ADMIN</h1><p>Manage your store from one place.</p></div>
 <button id="logout">Log Out</button>
 </header>
@@ -848,5 +861,5 @@ showAdminPanel("overview");
     await loadReviewQueue();
   }
 })();
-</script></body>
+</script><script>setTimeout(()=>{const loader=document.getElementById('kennix-page-loader');loader?.classList.add('is-hidden');setTimeout(()=>loader?.remove(),400);},3000);</script></body>
 </html>
