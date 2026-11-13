@@ -26,8 +26,8 @@ Deno.serve(async(req)=>{
       const products = await catalogueResponse.json();
       if (Array.isArray(products)) {
         catalogueContext = products.length
-          ? "LIVE KENNIX PRODUCT CATALOGUE (active products only; use these exact names, categories, descriptions and prices; stock availability is not included):\\n" +
-            products.map((p:any) => `- ${p.Name} | ${p.Category} | ₦${p.Price} | ${String(p.Description || "").slice(0,180)}`).join("\\n")
+          ? "LIVE KENNIX PRODUCT CATALOGUE (active products only; use these exact names, categories, descriptions and prices; stock availability is not included):\n" +
+            products.map((p:any) => `- ${p.Name} | ${p.Category} | ₦${p.Price} | ${String(p.Description || "").slice(0,180)}`).join("\n")
           : "The live KENNIX product catalogue currently returned no active products. Do not invent products or prices.";
       }
     }
@@ -45,7 +45,7 @@ Deno.serve(async(req)=>{
    else content.push({type:"input_file",filename:String(a.name||"upload").slice(0,120),file_data:a.data,detail:"auto"});
    input[input.length-1]={role:"user",content};
   }
-  const ai=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},body:JSON.stringify({model:"gpt-6-astra",instructions:SYSTEM+"\\n\\n"+catalogueContext,input,tools:[{type:"web_search"}],max_output_tokens:1400,reasoning:{effort:"medium"},store:false})});
+  const ai=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},body:JSON.stringify({model:"gpt-6-astra",instructions:SYSTEM+"\n\n"+catalogueContext,input,tools:[{type:"web_search"}],max_output_tokens:1400,reasoning:{effort:"medium"},store:false})});
   const result=await ai.json();
   if(!ai.ok){console.error("OpenAI API error",ai.status,result?.error?.type||"unknown");return json({error:"KENNIX AI couldn't complete that request. Please try again."},502);}
   const reply=(result.output||[]).flatMap((x:any)=>x.content||[]).filter((x:any)=>x.type==="output_text").map((x:any)=>x.text).join("\n").trim();
