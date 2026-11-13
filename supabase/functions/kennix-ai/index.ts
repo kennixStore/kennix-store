@@ -50,7 +50,7 @@ Deno.serve(async(req)=>{
      const controller=new AbortController();
      const timeout=setTimeout(()=>controller.abort(),18000);
      try{
-      response=await fetch(urlForModel,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
+      response=await fetch(urlForModel,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,tools:[{google_search:{}}],generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
       result=await response.json().catch(()=>({}));
      }finally{clearTimeout(timeout);}
     } catch (e) {
@@ -60,6 +60,8 @@ Deno.serve(async(req)=>{
     }
     if(response.ok){
      reply=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("\\n").trim();
+     const groundingChunks=result.candidates?.[0]?.groundingMetadata?.groundingChunks||[];
+     var sources=groundingChunks.map((chunk:any)=>chunk.web).filter((web:any)=>web&&typeof web.uri==="string"&&/^https?:\\/\\//i.test(web.uri)).map((web:any)=>({title:String(web.title||web.uri).slice(0,180),uri:web.uri})).filter((source:any,index:number,list:any[])=>list.findIndex((item:any)=>item.uri===source.uri)===index).slice(0,6);
      if(reply)break;
      lastFailure={http_status:502,provider_code:String(result.candidates?.[0]?.finishReason||"NO_TEXT"),provider_message:String(result.promptFeedback?.blockReason||"Provider returned no text").slice(0,240)};
      break;
@@ -83,6 +85,6 @@ Deno.serve(async(req)=>{
    console.error("All KENNIX AI models failed",modelsTried,lastFailure);
    return json({error:"KENNIX AI is temporarily unavailable. Please try again shortly.",diagnostic:{...lastFailure,models_tried:modelsTried}},status);
   }
-  return json({reply});
+  return json({reply,sources:sources||[]});
  }catch(e){console.error("KENNIX AI failed",e);return json({error:"Something went wrong. Please try again."},500);}
 });
