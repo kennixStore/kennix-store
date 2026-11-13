@@ -2,7 +2,6 @@
 "use strict";
 const endpoint="https://shdstohkbpvoxjtghsob.supabase.co/functions/v1/kennix-ai";
 const HISTORY_KEY="kennix-ai-chat-v1";
-const VOICE_KEY="kennix-ai-read-aloud-v1";
 const launcher=document.createElement("button");
 launcher.id="kennix-ai-launcher";
 launcher.type="button";
@@ -20,11 +19,9 @@ panel.innerHTML=
   '<div class="ka-file" id="ka-file-name" aria-live="polite"></div>'+
   '<div class="ka-compose-row">'+
     '<button id="ka-attach" type="button" aria-label="Attach image or document" title="Attach image, PDF, TXT or CSV">＋</button>'+
-    '<button id="ka-mic" type="button" aria-label="Speak your message" title="Speak your message">🎙</button>'+
     '<textarea id="ka-input" rows="1" maxlength="5000" placeholder="Ask KENNIX anything..." aria-label="Message KENNIX AI"></textarea>'+
     '<button id="ka-send" type="button" aria-label="Send message">➤</button>'+
   '</div>'+
-  '<div class="ka-options"><label class="ka-read-toggle"><input id="ka-auto-read" type="checkbox"><span>Read replies aloud</span></label><button id="ka-stop-audio" type="button" disabled>Stop audio</button></div>'+
   '<input id="ka-file-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf,.txt,.csv,text/plain,text/csv">'+
   '<div class="ka-status" id="ka-status" role="status" aria-live="polite">Images, PDFs, TXT and CSV supported · Chat history stays on this device</div>'+
 '</div>';
@@ -36,18 +33,9 @@ const send=panel.querySelector("#ka-send");
 const fileInput=panel.querySelector("#ka-file-input");
 const fileName=panel.querySelector("#ka-file-name");
 const status=panel.querySelector("#ka-status");
-const mic=panel.querySelector("#ka-mic");
-const autoRead=panel.querySelector("#ka-auto-read");
-const stopAudio=panel.querySelector("#ka-stop-audio");
 let history=loadHistory();
 let attachment=null;
 let busy=false;
-let recognition=null;
-let listening=false;
-let activeUtterance=null;
-let activeVoiceButton=null;
-
-try{autoRead.checked=localStorage.getItem(VOICE_KEY)==="true";}catch(_){autoRead.checked=false;}
 renderHistory();
 
 function loadHistory(){
@@ -77,18 +65,6 @@ function addMessage(text,role,controls){
   content.className="ka-message-text";
   content.textContent=text;
   bubble.append(content);
-  if(role==="assistant"&&controls!==false){
-    const actions=document.createElement("div");
-    actions.className="ka-message-actions";
-    const listenButton=document.createElement("button");
-    listenButton.type="button";
-    listenButton.className="ka-listen";
-    listenButton.textContent="🔊 Listen";
-    listenButton.setAttribute("aria-label","Read this answer aloud");
-    listenButton.addEventListener("click",()=>speak(text,listenButton));
-    actions.append(listenButton);
-    bubble.append(actions);
-  }
   body.append(bubble);
   scrollBottom();
   return {container:bubble,textElement:content};
@@ -116,109 +92,6 @@ function appendSources(message,sources){
   });
   if(list.children.length>1)message.container.append(list);
 }
-function resetVoiceButton(){
-  if(activeVoiceButton){
-    activeVoiceButton.textContent="🔊 Listen";
-    activeVoiceButton.classList.remove("ka-speaking");
-  }
-  activeVoiceButton=null;
-  activeUtterance=null;
-  stopAudio.disabled=true;
-}
-function stopSpeaking(){
-  if("speechSynthesis" in window)window.speechSynthesis.cancel();
-  resetVoiceButton();
-}
-function speak(text,button){
-  if(!("speechSynthesis" in window)||!("SpeechSynthesisUtterance" in window)){
-    status.textContent="Audio playback is not supported by this browser.";
-    return;
-  }
-  if(activeUtterance&&activeVoiceButton===button){
-    if(window.speechSynthesis.paused){
-      window.speechSynthesis.resume();
-      button.textContent="⏸ Pause";
-    }else if(window.speechSynthesis.speaking){
-      window.speechSynthesis.pause();
-      button.textContent="▶ Resume";
-    }
-    return;
-  }
-  stopSpeaking();
-  const utterance=new SpeechSynthesisUtterance(text.slice(0,12000));
-  utterance.lang="en-NG";
-  utterance.rate=1;
-  utterance.pitch=1;
-  const voices=window.speechSynthesis.getVoices();
-  const voice=voices.find(v=>/^en-NG$/i.test(v.lang))||
-    voices.find(v=>/^en-GB/i.test(v.lang))||
-    voices.find(v=>/^en-US/i.test(v.lang));
-  if(voice)utterance.voice=voice;
-  activeUtterance=utterance;
-  activeVoiceButton=button;
-  button.classList.add("ka-speaking");
-  button.textContent="⏸ Pause";
-  stopAudio.disabled=false;
-  utterance.onend=resetVoiceButton;
-  utterance.onerror=resetVoiceButton;
-  window.speechSynthesis.speak(utterance);
-}
-function startListening(){
-  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!Recognition){
-    status.textContent="Voice typing is not available in this browser. Try the latest Chrome.";
-    return;
-  }
-  if(listening&&recognition){recognition.stop();return;}
-  const base=input.value.trim();
-  let finalText="";
-  let interimText="";
-  recognition=new Recognition();
-  recognition.lang="en-NG";
-  recognition.continuous=false;
-  recognition.interimResults=true;
-  recognition.maxAlternatives=1;
-  recognition.onstart=()=>{
-    listening=true;
-    mic.classList.add("ka-listening");
-    mic.textContent="■";
-    mic.setAttribute("aria-label","Stop voice recording");
-    status.textContent="Listening… Speak now. Tap the microphone to stop.";
-  };
-  recognition.onresult=event=>{
-    interimText="";
-    for(let i=event.resultIndex;i<event.results.length;i++){
-      const transcript=event.results[i][0].transcript;
-      if(event.results[i].isFinal)finalText+=transcript+" ";
-      else interimText+=transcript;
-    }
-    input.value=[base,finalText.trim(),interimText.trim()].filter(Boolean).join(" ").slice(0,5000);
-  };
-  recognition.onerror=event=>{
-    const messages={
-      "not-allowed":"Microphone permission was blocked. Allow microphone access in your browser settings.",
-      "service-not-allowed":"This browser blocked voice input.",
-      "no-speech":"No speech was detected. Tap the microphone and try again.",
-      "network":"Voice recognition needs an active internet connection."
-    };
-    status.textContent=messages[event.error]||"Voice input stopped. You can type your message instead.";
-  };
-  recognition.onend=()=>{
-    listening=false;
-    mic.classList.remove("ka-listening");
-    mic.textContent="🎙";
-    mic.setAttribute("aria-label","Speak your message");
-    input.value=[base,finalText.trim()].filter(Boolean).join(" ").slice(0,5000);
-    if(finalText.trim())status.textContent="Voice captured. Review your message, then tap Send.";
-  };
-  try{recognition.start();}
-  catch(_){status.textContent="Could not start voice input. Please try again.";}
-}
-function stopListening(){
-  if(listening&&recognition){
-    try{recognition.stop();}catch(_){}
-  }
-}
 function readTextFile(file){
   if(typeof file.text==="function")return file.text();
   return new Promise((resolve,reject)=>{
@@ -241,18 +114,11 @@ function isTextFile(file){
 }
 launcher.addEventListener("click",()=>{panel.classList.add("open");input.focus();});
 panel.querySelector(".ka-close").addEventListener("click",()=>{
-  stopListening();stopSpeaking();panel.classList.remove("open");
+  panel.classList.remove("open");
 });
 panel.querySelector("#ka-attach").addEventListener("click",()=>fileInput.click());
-panel.querySelector("#ka-mic").addEventListener("click",startListening);
-panel.querySelector("#ka-stop-audio").addEventListener("click",stopSpeaking);
-panel.querySelector("#ka-auto-read").addEventListener("change",()=>{
-  try{localStorage.setItem(VOICE_KEY,String(autoRead.checked));}catch(_){}
-  status.textContent=autoRead.checked?"Voice replies are on. New answers will be read aloud.":"Voice replies are off. Tap Listen on any answer to hear it.";
-});
 panel.querySelector("#ka-clear").addEventListener("click",()=>{
   if(!window.confirm("Clear the conversation saved on this device?"))return;
-  stopListening();stopSpeaking();
   history=[];
   try{localStorage.removeItem(HISTORY_KEY);}catch(_){}
   body.replaceChildren();
@@ -277,7 +143,6 @@ fileInput.addEventListener("change",()=>{
 });
 async function submit(){
   if(busy)return;
-  stopListening();
   const question=input.value.trim();
   if(!question&&!attachment)return;
   const chosen=attachment;
@@ -320,22 +185,11 @@ async function submit(){
     if(!response.ok)throw new Error(data.error||"KENNIX AI is temporarily unavailable. Please try again.");
     const answer=data.reply||"I couldn't generate a response. Please try again.";
     thinking.textElement.textContent=answer;
-    const listenButton=document.createElement("button");
-    listenButton.type="button";
-    listenButton.className="ka-listen";
-    listenButton.textContent="🔊 Listen";
-    listenButton.setAttribute("aria-label","Read this answer aloud");
-    listenButton.addEventListener("click",()=>speak(answer,listenButton));
-    const actions=document.createElement("div");
-    actions.className="ka-message-actions";
-    actions.append(listenButton);
-    thinking.container.append(actions);
     appendSources(thinking,data.sources);
     history.push({role:"assistant",content:answer});
     history=history.slice(-12);
     saveHistory();
-    status.textContent=autoRead.checked?"Reading the answer aloud…":"You’re chatting with KENNIX AI.";
-    if(autoRead.checked)speak(answer,listenButton);
+    status.textContent="You’re chatting with KENNIX AI.";
   }catch(error){
     thinking.textElement.textContent=error.name==="AbortError"?
       "KENNIX AI took too long to respond. Please try again.":
