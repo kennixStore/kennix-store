@@ -10,11 +10,12 @@ const panel=document.createElement("section");
 panel.id="kennix-ai-panel";
 panel.setAttribute("aria-label","KENNIX AI assistant");
 panel.innerHTML=
+'<div class="ka-bubble-field" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>'+
 '<header class="ka-head">'+
-  '<div class="ka-brand">✦ KENNIX AI<small>YOUR STORE & EVERYDAY ASSISTANT</small></div>'+
-  '<div class="ka-head-actions"><button id="ka-clear" type="button" aria-label="Clear saved conversation">Clear chat</button><button class="ka-close" type="button" aria-label="Close">×</button></div>'+
+  '<div class="ka-brand"><span class="ka-brand-mark">✦</span><span>KENNIX AI</span><small>YOUR WORLD. YOUR ASSISTANT.</small></div>'+
+  '<div class="ka-head-actions"><span class="ka-ready"><i></i> READY</span><button id="ka-clear" type="button" aria-label="Clear saved conversation">Clear</button><button class="ka-close" type="button" aria-label="Close">×</button></div>'+
 '</header>'+
-'<div class="ka-body" id="ka-body"><p class="ka-intro">What would you like to explore today?</p></div>'+
+'<div class="ka-body" id="ka-body"></div>'+
 '<div class="ka-compose">'+
   '<div class="ka-file" id="ka-file-name" aria-live="polite"></div>'+
   '<div class="ka-compose-row">'+
@@ -55,10 +56,27 @@ function saveHistory(){
 }
 function scrollBottom(){body.scrollTop=body.scrollHeight;}
 function showIntro(){
-  const intro=document.createElement("p");
-  intro.className="ka-intro";
-  intro.textContent="What would you like to explore today?";
-  body.append(intro);
+  const welcome=document.createElement("div");
+  welcome.className="ka-welcome";
+  const mark=document.createElement("div");
+  mark.className="ka-welcome-mark";
+  mark.textContent="✦";
+  const title=document.createElement("h2");
+  title.textContent="Hello. What’s on your mind?";
+  const copy=document.createElement("p");
+  copy.textContent="I’m KENNIX AI — here to help with your store, ideas and everyday questions.";
+  const suggestions=document.createElement("div");
+  suggestions.className="ka-suggestions";
+  [["Explore KENNIX","Tell me about KENNIX."],["Ask anything","I have a question."],["Get help","How can you help me today?"]].forEach(([label,prompt])=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="ka-suggestion";
+    button.textContent=label;
+    button.addEventListener("click",()=>{input.value=prompt;input.focus();});
+    suggestions.append(button);
+  });
+  welcome.append(mark,title,copy,suggestions);
+  body.append(welcome);
 }
 function addMessage(text,role,controls){
   const bubble=document.createElement("div");
@@ -77,7 +95,7 @@ function speakText(text){
   const utterance=new SpeechSynthesisUtterance(text);utterance.lang="en-NG";utterance.rate=1;speechSynthesis.speak(utterance);
 }
 function renderHistory(){
-  if(!history.length)return;
+  if(!history.length){showIntro();return;}
   history.forEach(m=>addMessage(m.content,m.role));
 }
 function appendSources(message,sources){
