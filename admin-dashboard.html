@@ -59,15 +59,18 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 </section>
 <section class="admin-panel" data-admin-panel="overview">
 <div class="card" style="margin:0">
-<h2>Welcome to KENNIX Admin</h2>
-<p class="small">Your store at a glance. Figures update when you refresh this section.</p>
+<h2>Dashboard</h2>
+<p class="small" style="letter-spacing:1.5px;font-weight:700;color:#68766d">STORE ANALYSIS</p>
+<p class="small">A clear view of your store at a glance.</p>
+<div style="display:inline-block;background:#fff4d6;color:#765600;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700">DEMO ANALYTICS PREVIEW · NOT LIVE TRANSACTION DATA</div>
 <button type="button" id="refreshDashboardStats">↻ Refresh Statistics</button>
-<p id="dashboardStatsMessage" class="small" aria-live="polite">Loading store statistics...</p>
+<p id="dashboardStatsMessage" class="small" aria-live="polite">Loading dashboard figures...</p>
 <div class="stats-grid" id="dashboardStats">
-<div class="stat-card"><span>Active Products</span><strong id="statProducts">—</strong></div>
-<div class="stat-card"><span>Low-stock Options (3 or less)</span><strong id="statLowStock">—</strong></div>
+<div class="stat-card"><span>Total Visitors</span><strong id="statVisitors">51,200</strong></div>
+<div class="stat-card"><span>Total Orders</span><strong id="statOrders">3,128</strong></div>
+<div class="stat-card"><span>Confirmed Payments</span><strong id="statConfirmed">3,128</strong></div>
+<div class="stat-card"><span>Pending Payments</span><strong id="statPending">0</strong></div>
 </div>
-<p class="small">Low stock counts active product options with 3 or fewer units.</p>
 </div>
 </section>
 <section class="card admin-panel" data-admin-panel="orders" hidden>
@@ -195,26 +198,26 @@ async function checkLogin() {
   return true;
 }
 
-/* DASHBOARD OVERVIEW STATISTICS */
-async function loadDashboardStats(){
-  const message=document.getElementById("dashboardStatsMessage");
-  message.textContent="Updating product statistics...";
-  document.getElementById("statProducts").textContent="—";
-  document.getElementById("statLowStock").textContent="—";
-  const [productsResult,stockResult]=await Promise.all([
-   db.from("products").select("id",{count:"exact",head:true}).eq("Is_active",true),
-   db.from("product_variants").select("stock_quantity").eq("is_active",true).lte("stock_quantity",3)
-  ]);
-  if(productsResult.error||stockResult.error){
-   message.textContent="Could not load all product statistics. Check table permissions.";
-   if(productsResult.error) message.textContent+=" Products: "+productsResult.error.message;
-   if(stockResult.error) message.textContent+=" Stock: "+stockResult.error.message;
-   return;
-  }
-  const fmt=n=>Number(n).toLocaleString("en-NG");
-  document.getElementById("statProducts").textContent=fmt(productsResult.count||0);
-  document.getElementById("statLowStock").textContent=fmt((stockResult.data||[]).length);
-  message.textContent="Product statistics updated.";
+/* DASHBOARD ANALYTICS DEMO PREVIEW */
+const demoBaseVisitors=51200;
+const demoBaseOrders=3128;
+const demoVisitorStep=10;
+const demoOrderStep=6;
+const demoStorageKey="kennix_dashboard_demo_visitors_v1";
+function loadDashboardStats(){
+ const message=document.getElementById("dashboardStatsMessage");
+ let visitors=Number(localStorage.getItem(demoStorageKey));
+ if(!Number.isFinite(visitors)||visitors<demoBaseVisitors)visitors=demoBaseVisitors;
+ else visitors+=demoVisitorStep;
+ localStorage.setItem(demoStorageKey,String(visitors));
+ const addedVisitors=visitors-demoBaseVisitors;
+ const orders=demoBaseOrders+Math.floor(addedVisitors/100)*demoOrderStep;
+ const fmt=n=>Number(n).toLocaleString("en-NG");
+ document.getElementById("statVisitors").textContent=fmt(visitors);
+ document.getElementById("statOrders").textContent=fmt(orders);
+ document.getElementById("statConfirmed").textContent=fmt(orders);
+ document.getElementById("statPending").textContent="0";
+ message.textContent="Demo figures refreshed.";
 }
 document.getElementById("refreshDashboardStats").addEventListener("click",loadDashboardStats);
 /* SUPPLIER MANAGEMENT */
