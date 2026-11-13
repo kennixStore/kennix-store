@@ -35,3 +35,5 @@
  .ka-body{padding:11px}
  .ka-compose{padding:9px}
 }
+.ka-voice-btn{border:1px solid #ded4ed;background:#fff;color:#5427a8;border-radius:7px;padding:5px 8px;font:600 10px system-ui;cursor:pointer}
+#ka-mic{background:#f3eff9;color:#5427a8;border:1px solid #ded4ed;border-radius:10px;padding:0 11px;min-height:43px;font-size:17px;cursor:pointer}
