@@ -36,7 +36,7 @@ jobs:
 
       - name: Deploy KENNIX AI Edge Function
         shell: bash
-        run: supabase functions deploy kennix-ai --remote="$SUPABASE_PROJECT_ID" --use-api
+        run: supabase functions deploy kennix-ai --remote="$SUPABASE_PROJECT_ID" --use-api --yes
 
       - name: Verify deployment endpoint responds
         shell: bash
