@@ -57,21 +57,21 @@ Deno.serve(async(req)=>{
   const textOnlyAttachment=!!body.attachment&&typeof body.attachment.text==="string";
   const hasBinaryAttachment=!!body.attachment&&!textOnlyAttachment;
   const openAiMessages:any[]=[
-   {role:"system",content:systemInstruction+"\\n\\nThis provider does not have a live web-search tool in this request. Do not claim you searched the web or present changing facts as verified."},
-   ...contents.map((m:any)=>({role:m.role==="model"?"assistant":m.role,content:(m.parts||[]).map((p:any)=>p.text||"").join("\\n")}))
+   {role:"system",content:systemInstruction+"\n\nThis provider does not have a live web-search tool in this request. Do not claim you searched the web or present changing facts as verified."},
+   ...contents.map((m:any)=>({role:m.role==="model"?"assistant":m.role,content:(m.parts||[]).map((p:any)=>p.text||"").join("\n")}))
   ];
   const providers:any[]=[];
   if(key)providers.push({name:"Gemini",run:async()=>{
    const model="gemini-3.5-flash-lite";
    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),18000);
    try{
-    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,...(/\\b(latest|today|current|right now|this week|news|weather|recent|2026|2025|currently)\\b/i.test(latestQuestion)?{tools:[{google_search:{}}]}:{}),generationConfig:{maxOutputTokens:900,temperature:0.6}})});
+    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,...(/\b(latest|today|current|right now|this week|news|weather|recent|2026|2025|currently)\b/i.test(latestQuestion)?{tools:[{google_search:{}}]}:{}),generationConfig:{maxOutputTokens:900,temperature:0.6}})});
     const result=await response.json().catch(()=>({}));
     if(!response.ok)throw {status:response.status,code:String(result?.error?.status||"UNKNOWN"),message:String(result?.error?.message||"Provider request failed").slice(0,220)};
-    const candidate=result.candidates?.[0];const text=(candidate?.content?.parts||[]).map((p:any)=>p.text||"").join("\\n").trim();
+    const candidate=result.candidates?.[0];const text=(candidate?.content?.parts||[]).map((p:any)=>p.text||"").join("\n").trim();
     if(!text)throw {status:502,code:String(candidate?.finishReason||"NO_TEXT"),message:String(result.promptFeedback?.blockReason||"Provider returned no text")};
     const chunks=candidate?.groundingMetadata?.groundingChunks||[];
-    sources=chunks.map((chunk:any)=>chunk.web).filter((w:any)=>w&&typeof w.uri==="string"&&/^https?:\\/\\//.test(w.uri)).map((w:any)=>({title:String(w.title||w.uri).slice(0,180),uri:w.uri})).filter((s:any,i:number,a:any[])=>a.findIndex((x:any)=>x.uri===s.uri)===i).slice(0,6);
+    sources=chunks.map((chunk:any)=>chunk.web).filter((w:any)=>w&&typeof w.uri==="string"&&/^https?:\/\//.test(w.uri)).map((w:any)=>({title:String(w.title||w.uri).slice(0,180),uri:w.uri})).filter((s:any,i:number,a:any[])=>a.findIndex((x:any)=>x.uri===s.uri)===i).slice(0,6);
     return text;
    }finally{clearTimeout(timeout);}
   }});
@@ -103,7 +103,7 @@ Deno.serve(async(req)=>{
    try{reply=await provider.run();usedProvider=provider.name;break;}
    catch(e:any){
     const status=Number(e?.status||((e?.name==="AbortError")?504:503));
-    lastFailure={http_status:status,provider_code:String(e?.code||((e?.name==="AbortError")?"TIMEOUT":"NETWORK_ERROR")),provider_message:String(e?.message||e||"Provider failed").replace(/[\\r\\n]+/g," ").slice(0,220)};
+    lastFailure={http_status:status,provider_code:String(e?.code||((e?.name==="AbortError")?"TIMEOUT":"NETWORK_ERROR")),provider_message:String(e?.message||e||"Provider failed").replace(/[\r\n]+/g," ").slice(0,220)};
     console.error("KENNIX AI provider unavailable",provider.name,lastFailure);
     // Do not continue after invalid credentials, malformed requests, or policy errors.
     if([400,401,403].includes(status))continue;
