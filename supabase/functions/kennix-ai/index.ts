@@ -32,10 +32,53 @@ Deno.serve(async(req)=>{
    contents[contents.length-1]={role:"user",parts};
   }
   const systemInstruction=SYSTEM+"\n\n"+catalogueContext;
-  const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
-  const result=await response.json();
-  if(!response.ok){const providerCode=String(result?.error?.status||"UNKNOWN").slice(0,80);const providerMessage=String(result?.error?.message||"No provider message returned").replace(/[\r\n]+/g," ").slice(0,240);console.error("Gemini API error",response.status,providerCode,providerMessage);return json({error:"KENNIX AI provider request failed.",diagnostic:{http_status:response.status,provider_code:providerCode,provider_message:providerMessage}},502);}
-  const reply=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("\n").trim();
-  if(!reply){const finishReason=String(result.candidates?.[0]?.finishReason||"NO_CANDIDATE").slice(0,80);const blockReason=String(result.promptFeedback?.blockReason||"NONE").slice(0,80);console.error("Gemini returned no text",finishReason,blockReason);return json({error:"Gemini returned no text.",diagnostic:{finish_reason:finishReason,block_reason:blockReason}},502);} return json({reply});
+  // Use Google's currently documented stable Flash models with automatic failover.
+  // 503 means model capacity is temporarily unavailable; it is not an API-key or quota error.
+  const models = ["gemini-3.6-flash","gemini-3.5-flash-lite","gemini-3.8-flash"];
+  let reply = "";
+  let lastFailure:any = null;
+  const modelsTried:string[] = [];
+  for (const model of models) {
+   modelsTried.push(model);
+   const urlForModel = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+   // Retry transient 5xx responses once, then move to the next model.
+   const attempts = model === "gemini-3.8-flash" ? 1 : 2;
+   for (let attempt=0; attempt<attempts; attempt++) {
+    let response:Response;
+    let result:any;
+    try {
+     response=await fetch(urlForModel,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
+     result=await response.json().catch(()=>({}));
+    } catch (e) {
+     lastFailure={http_status:503,provider_code:"NETWORK_ERROR",provider_message:String(e||"Network request failed").slice(0,240)};
+     if(attempt+1<attempts){await new Promise(r=>setTimeout(r,900));continue;}
+     break;
+    }
+    if(response.ok){
+     reply=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("\\n").trim();
+     if(reply)break;
+     lastFailure={http_status:502,provider_code:String(result.candidates?.[0]?.finishReason||"NO_TEXT"),provider_message:String(result.promptFeedback?.blockReason||"Provider returned no text").slice(0,240)};
+     break;
+    }
+    const providerCode=String(result?.error?.status||"UNKNOWN").slice(0,80);
+    const providerMessage=String(result?.error?.message||"No provider message returned").replace(/[\\r\\n]+/g," ").slice(0,240);
+    lastFailure={http_status:response.status,provider_code:providerCode,provider_message:providerMessage};
+    console.error("Gemini model failed",model,response.status,providerCode,providerMessage);
+    // Only retry transient server-capacity failures. Bad credentials and malformed
+    // requests should fail immediately instead of wasting requests on other models.
+    if([500,502,503,504].includes(response.status)&&attempt+1<attempts){await new Promise(r=>setTimeout(r,900));continue;}
+    if([400,401,403].includes(response.status)){
+     return json({error:"KENNIX AI provider request failed.",diagnostic:{...lastFailure,model}},response.status===429?429:502);
+    }
+    break;
+   }
+   if(reply)break;
+  }
+  if(!reply){
+   const status=lastFailure?.http_status===429?429:([500,502,503,504].includes(lastFailure?.http_status)?503:502);
+   console.error("All KENNIX AI models failed",modelsTried,lastFailure);
+   return json({error:"KENNIX AI is temporarily unavailable. Please try again shortly.",diagnostic:{...lastFailure,models_tried:modelsTried}},status);
+  }
+  return json({reply});
  }catch(e){console.error("KENNIX AI failed",e);return json({error:"Something went wrong. Please try again."},500);}
 });
