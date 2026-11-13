@@ -207,8 +207,14 @@ async function submit(){
         body:JSON.stringify(payload)
       });
     }finally{clearTimeout(requestTimer);}
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(data.error||"KENNIX AI is temporarily unavailable. Please try again.");
+    const rawResponse=await response.text();
+    let data={};
+    try{data=rawResponse?JSON.parse(rawResponse):{};}catch(_){}
+    if(!response.ok){
+      const serverMessage=[data.error,data.message,data.msg,data.error_description].find(v=>typeof v==="string"&&v.trim());
+      const gatewayHint=serverMessage||(/<html/i.test(rawResponse)?"The AI service gateway returned an HTML error page.":rawResponse.trim().slice(0,180));
+      throw new Error(gatewayHint||("KENNIX AI service returned HTTP "+response.status+". Please try again."));
+    }
     const answer=data.reply||"I couldn't generate a response. Please try again.";
     thinking.textElement.textContent=answer;
     const voiceActions=document.createElement("div");voiceActions.className="ka-message-actions";
