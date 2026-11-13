@@ -34,7 +34,7 @@ Deno.serve(async(req)=>{
   const systemInstruction=SYSTEM+"\n\n"+catalogueContext;
   // Use Google's currently documented stable Flash models with automatic failover.
   // 503 means model capacity is temporarily unavailable; it is not an API-key or quota error.
-  const models = ["gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash-lite","gemini-3.8-flash"];
+  const models = ["gemini-3.8-flash","gemini-3.5-flash-lite"];
   let reply = "";
   let lastFailure:any = null;
   const modelsTried:string[] = [];
@@ -42,15 +42,19 @@ Deno.serve(async(req)=>{
    modelsTried.push(model);
    const urlForModel = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
    // Retry transient 5xx responses once, then move to the next model.
-   const attempts = model === "gemini-3.8-flash" ? 1 : 2;
+   const attempts = 2;
    for (let attempt=0; attempt<attempts; attempt++) {
     let response:Response;
     let result:any;
     try {
-     response=await fetch(urlForModel,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
-     result=await response.json().catch(()=>({}));
+     const controller=new AbortController();
+     const timeout=setTimeout(()=>controller.abort(),18000);
+     try{
+      response=await fetch(urlForModel,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,generationConfig:{maxOutputTokens:1400,temperature:0.7}})});
+      result=await response.json().catch(()=>({}));
+     }finally{clearTimeout(timeout);}
     } catch (e) {
-     lastFailure={http_status:503,provider_code:"NETWORK_ERROR",provider_message:String(e||"Network request failed").slice(0,240)};
+     lastFailure={http_status:(e as any)?.name==="AbortError"?504:503,provider_code:(e as any)?.name==="AbortError"?"TIMEOUT":"NETWORK_ERROR",provider_message:String(e||"Network request failed").slice(0,240)};
      if(attempt+1<attempts){await new Promise(r=>setTimeout(r,900));continue;}
      break;
     }
