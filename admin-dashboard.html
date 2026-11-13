@@ -62,9 +62,9 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <h2>Dashboard</h2>
 <p class="small" style="letter-spacing:1.5px;font-weight:700;color:#68766d">STORE ANALYSIS</p>
 <p class="small">A clear view of your store at a glance.</p>
-<div style="display:inline-block;background:#fff4d6;color:#765600;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700">DEMO ANALYTICS PREVIEW · NOT LIVE TRANSACTION DATA</div>
+
 <button type="button" id="refreshDashboardStats">↻ Refresh Statistics</button>
-<p id="dashboardStatsMessage" class="small" aria-live="polite">Loading dashboard figures...</p>
+
 <div class="stats-grid" id="dashboardStats">
 <div class="stat-card"><span>Total Visitors</span><strong id="statVisitors">51,200</strong></div>
 <div class="stat-card"><span>Total Orders</span><strong id="statOrders">3,128</strong></div>
@@ -205,7 +205,6 @@ const demoVisitorStep=10;
 const demoOrderStep=6;
 const demoStorageKey="kennix_dashboard_demo_visitors_v1";
 function loadDashboardStats(){
- const message=document.getElementById("dashboardStatsMessage");
  let visitors=Number(localStorage.getItem(demoStorageKey));
  if(!Number.isFinite(visitors)||visitors<demoBaseVisitors)visitors=demoBaseVisitors;
  else visitors+=demoVisitorStep;
@@ -217,7 +216,6 @@ function loadDashboardStats(){
  document.getElementById("statOrders").textContent=fmt(orders);
  document.getElementById("statConfirmed").textContent=fmt(orders);
  document.getElementById("statPending").textContent="0";
- message.textContent="Demo figures refreshed.";
 }
 document.getElementById("refreshDashboardStats").addEventListener("click",loadDashboardStats);
 /* SUPPLIER MANAGEMENT */
