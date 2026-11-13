@@ -1,6 +1,9 @@
 /* KENNIX AI — premium floating-bubble chat room */
-#kennix-ai-launcher{position:fixed;right:18px;bottom:20px;z-index:9997;border:1px solid #7650d5;background:linear-gradient(135deg,#6738c8,#315fc8);color:#fff;border-radius:999px;padding:13px 18px;font:700 14px system-ui;box-shadow:0 9px 30px #30206b66;cursor:pointer}
-#kennix-ai-launcher span{color:#fff;margin-right:6px}
+#kennix-ai-launcher{position:fixed;right:18px;bottom:20px;z-index:9997;display:inline-flex;align-items:center;gap:7px;border:1px solid #e7def6;background:rgba(255,255,255,.97);color:#6f55a0;border-radius:999px;padding:9px 13px;font:700 13px system-ui;letter-spacing:.01em;box-shadow:0 5px 18px #8e78b51f;cursor:pointer;animation:ka-launcher-float 2.2s ease-in-out infinite;transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}
+#kennix-ai-launcher span{display:grid;place-items:center;width:23px;height:23px;margin:0;border-radius:50%;background:#f1eafb;color:#8a6cba;font-size:14px;line-height:1}
+#kennix-ai-launcher:hover{border-color:#d5c5ec;box-shadow:0 7px 20px #8e78b52b}
+#kennix-ai-launcher:focus-visible{outline:2px solid #b69bdc;outline-offset:3px}
+@keyframes ka-launcher-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 #kennix-ai-panel{position:fixed;isolation:isolate;z-index:9998;right:16px;bottom:78px;width:min(430px,calc(100vw - 24px));height:min(700px,calc(100dvh - 105px));background:#0d1020;color:#f7f5ff;border:1px solid #ffffff1c;border-radius:23px;box-shadow:0 24px 85px #05061199;display:none;overflow:hidden;font-family:Inter,system-ui,-apple-system,sans-serif}
 #kennix-ai-panel.open{display:flex;flex-direction:column}
 .ka-bubble-field{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;background:radial-gradient(ellipse at 12% 22%,#5935a51c,transparent 42%),radial-gradient(ellipse at 90% 75%,#2865b51b,transparent 40%)}
@@ -64,4 +67,4 @@
  .ka-compose{padding:9px}
  .ka-welcome{padding:20px 12px}
 }
-@media(prefers-reduced-motion:reduce){.ka-bubble-field i{animation:none}}
+@media(prefers-reduced-motion:reduce){.ka-bubble-field i,#kennix-ai-launcher{animation:none}}
