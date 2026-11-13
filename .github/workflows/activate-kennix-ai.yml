@@ -42,13 +42,11 @@ jobs:
         shell: bash
         run: supabase functions deploy kennix-ai --remote="$SUPABASE_PROJECT_ID" --use-api --yes
 
-      - name: Verify deployment endpoint responds
+      - name: Verify deployment health without using Gemini quota
         shell: bash
         run: |
           status=$(curl -sS -o /tmp/kennix-ai-check.json -w "%{http_code}" \
-            -X POST "https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/kennix-ai" \
-            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
-            -H "Content-Type: application/json" \
-            --data '{"messages":[{"role":"user","content":"Reply with exactly: KENNIX AI is online."}]}' )
+            "https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/kennix-ai" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY")
           cat /tmp/kennix-ai-check.json
           test "$status" = "200"
