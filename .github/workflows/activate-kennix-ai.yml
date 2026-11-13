@@ -1,0 +1,54 @@
+name: Activate KENNIX AI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: shdstohkbpvoxjtghsob
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check required credentials
+        shell: bash
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Missing GitHub secret: SUPABASE_ACCESS_TOKEN" && exit 1)
+          test -n "$SUPABASE_DB_PASSWORD" || (echo "Missing GitHub secret: SUPABASE_DB_PASSWORD" && exit 1)
+          test -n "$OPENAI_API_KEY" || (echo "Missing GitHub secret: OPENAI_API_KEY" && exit 1)
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Store OpenAI key in Supabase Edge Function secrets
+        shell: bash
+        run: supabase secrets set "OPENAI_API_KEY=$OPENAI_API_KEY" --project-ref "$SUPABASE_PROJECT_ID" --yes
+
+      - name: Apply KENNIX AI database migration
+        shell: bash
+        run: supabase db push --remote="$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD" --yes
+
+      - name: Deploy KENNIX AI Edge Function
+        shell: bash
+        run: supabase functions deploy kennix-ai --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Verify deployment endpoint responds
+        shell: bash
+        run: |
+          status=$(curl -sS -o /tmp/kennix-ai-check.json -w "%{http_code}" \
+            -X POST "https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/kennix-ai" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{"messages":[{"role":"user","content":"Reply with exactly: KENNIX AI is online."}]}' )
+          cat /tmp/kennix-ai-check.json
+          test "$status" = "200"
