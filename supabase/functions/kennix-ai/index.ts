@@ -34,7 +34,7 @@ Deno.serve(async(req)=>{
   const systemInstruction=SYSTEM+"\n\n"+catalogueContext;
   // Use Google's currently documented stable Flash models with automatic failover.
   // 503 means model capacity is temporarily unavailable; it is not an API-key or quota error.
-  const models = ["gemini-3.6-flash","gemini-3.5-flash-lite","gemini-3.8-flash"];
+  const models = ["gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash-lite","gemini-3.8-flash"];
   let reply = "";
   let lastFailure:any = null;
   const modelsTried:string[] = [];
