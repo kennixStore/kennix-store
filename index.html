@@ -131,8 +131,9 @@
 @media(max-width:480px){.terms-heading{padding:17px 17px 10px}.terms-content{padding:8px 17px}.terms-actions{padding:12px 17px;flex-direction:column-reverse}.terms-actions button{width:100%}}
 
 /* KENNIX three-second shopping-bag page loader */
-.kennix-loader{position:fixed;inset:0;z-index:20000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(42px,9vh,76px);padding:28px 22px;background:radial-gradient(ellipse at 50% 35%,#174637 0%,#063326 48%,#011710 100%);color:#fff;opacity:1;visibility:visible;transition:opacity .42s ease,visibility .42s ease;font-family:Inter,Arial,sans-serif}
-.kennix-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.kennix-loader{position:fixed;inset:0;z-index:20000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(42px,9vh,76px);padding:28px 22px;background:radial-gradient(ellipse at 50% 35%,#174637 0%,#063326 48%,#011710 100%);color:#fff;opacity:1;visibility:visible;transition:opacity .42s ease,visibility .42s ease;font-family:Inter,Arial,sans-serif;animation:kennixLoaderFailsafe .5s ease 7.5s forwards}
+.kennix-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none;animation:none}
+@keyframes kennixLoaderFailsafe{to{opacity:0;visibility:hidden;pointer-events:none}}
 .kennix-welcome{text-align:center;animation:kennixWelcomeIn .65s ease both}
 .kennix-welcome-name{font-size:clamp(38px,10vw,58px);font-weight:800;letter-spacing:.22em;padding-left:.22em;color:#fff;text-shadow:0 5px 28px #0005}
 .kennix-welcome p{margin:10px 0 0;color:#e4d6a8;font-size:clamp(10px,2.8vw,13px);letter-spacing:.12em}
