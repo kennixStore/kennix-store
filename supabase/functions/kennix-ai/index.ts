@@ -12,8 +12,8 @@ Deno.serve(async(req)=>{
  // Lightweight deployment health check: never consumes Gemini quota.
  if(req.method==="GET")return json({ok:true,service:"KENNIX AI"});
  if(req.method!=="POST")return json({error:"Method not allowed."},405);
- const key=Deno.env.get("GEMINI_API_KEY"),url=Deno.env.get("SUPABASE_URL"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
- if(!key||!url||!service)return json({error:"KENNIX AI is not configured yet. Please try again later."},503);
+ const key=Deno.env.get("GEMINI_API_KEY"),openRouterKey=Deno.env.get("OPENROUTER_API_KEY"),groqKey=Deno.env.get("GROQ_API_KEY"),url=Deno.env.get("SUPABASE_URL"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+ if(!url||!service)return json({error:"KENNIX AI is not configured yet. Please try again later."},503);
  try{
   const body=await req.json(),messages=Array.isArray(body.messages)?body.messages.slice(-6):[];
   if(!messages.length||messages[messages.length-1]?.role!=="user"||messages.some((m:any)=>!["user","assistant"].includes(m?.role)||typeof m?.content!=="string"||m.content.length>5000))return json({error:"Please send a valid message (maximum 5,000 characters)."},400);
@@ -49,56 +49,71 @@ Deno.serve(async(req)=>{
    }
   }
   const systemInstruction=SYSTEM+"\\n\\n"+catalogueContext;
-  // Use the existing stable Flash model order and retry transient capacity failures.
-  const models = ["gemini-3.5-flash-lite"];
-  let reply = "";
-  let sources:any[] = [];
-  let lastFailure:any = null;
-  const modelsTried:string[] = [];
-  for (const model of models) {
-   modelsTried.push(model);
-   const urlForModel = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-   const attempts = 1;
-   for (let attempt=0; attempt<attempts; attempt++) {
-    let response:Response;
-    let result:any;
-    try {
-     const controller=new AbortController();
-     const timeout=setTimeout(()=>controller.abort(),18000);
-     try{
-      response=await fetch(urlForModel,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,...(/\b(latest|today|current|right now|this week|news|weather|recent|2026|2025|currently)\b/i.test(latestQuestion)?{tools:[{google_search:{}}]}:{}),generationConfig:{maxOutputTokens:900,temperature:0.6}})});
-      result=await response.json().catch(()=>({}));
-     }finally{clearTimeout(timeout);}
-    } catch (e) {
-     lastFailure={http_status:(e as any)?.name==="AbortError"?504:503,provider_code:(e as any)?.name==="AbortError"?"TIMEOUT":"NETWORK_ERROR",provider_message:String(e||"Network request failed").slice(0,240)};
-     if(attempt+1<attempts){await new Promise(r=>setTimeout(r,900));continue;}
-     break;
-    }
-    if(response.ok){
-     reply=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("\\n").trim();
-     const groundingChunks=result.candidates?.[0]?.groundingMetadata?.groundingChunks||[];
-     sources=groundingChunks.map((chunk:any)=>chunk.web).filter((web:any)=>web&&typeof web.uri==="string"&&(web.uri.startsWith("https://")||web.uri.startsWith("http://"))).map((web:any)=>({title:String(web.title||web.uri).slice(0,180),uri:web.uri})).filter((source:any,index:number,list:any[])=>list.findIndex((item:any)=>item.uri===source.uri)===index).slice(0,6);
-     if(reply)break;
-     lastFailure={http_status:502,provider_code:String(result.candidates?.[0]?.finishReason||"NO_TEXT"),provider_message:String(result.promptFeedback?.blockReason||"Provider returned no text").slice(0,240)};
-     break;
-    }
-    const providerCode=String(result?.error?.status||"UNKNOWN").slice(0,80);
-    const providerMessage=String(result?.error?.message||"No provider message returned").replace(/[\\r\\n]+/g," ").slice(0,240);
-    lastFailure={http_status:response.status,provider_code:providerCode,provider_message:providerMessage};
-    console.error("Gemini model failed",model,response.status,providerCode,providerMessage);
-    if([500,502,503,504].includes(response.status)&&attempt+1<attempts){await new Promise(r=>setTimeout(r,900));continue;}
-    if([400,401,403].includes(response.status)){
-     return json({error:"KENNIX AI provider request failed.",diagnostic:{...lastFailure,model}},502);
-    }
-    break;
+  // Provider-independent routing: Gemini first, then free OpenRouter, then Groq only when explicitly enabled.
+  let reply="";
+  let sources:any[]=[];
+  let lastFailure:any=null;
+  let usedProvider="";
+  const textOnlyAttachment=!!body.attachment&&typeof body.attachment.text==="string";
+  const hasBinaryAttachment=!!body.attachment&&!textOnlyAttachment;
+  const openAiMessages:any[]=[
+   {role:"system",content:systemInstruction+"\\n\\nThis provider does not have a live web-search tool in this request. Do not claim you searched the web or present changing facts as verified."},
+   ...contents.map((m:any)=>({role:m.role==="model"?"assistant":m.role,content:(m.parts||[]).map((p:any)=>p.text||"").join("\\n")}))
+  ];
+  const providers:any[]=[];
+  if(key)providers.push({name:"Gemini",run:async()=>{
+   const model="gemini-3.5-flash-lite";
+   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),18000);
+   try{
+    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,...(/\\b(latest|today|current|right now|this week|news|weather|recent|2026|2025|currently)\\b/i.test(latestQuestion)?{tools:[{google_search:{}}]}:{}),generationConfig:{maxOutputTokens:900,temperature:0.6}})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw {status:response.status,code:String(result?.error?.status||"UNKNOWN"),message:String(result?.error?.message||"Provider request failed").slice(0,220)};
+    const candidate=result.candidates?.[0];const text=(candidate?.content?.parts||[]).map((p:any)=>p.text||"").join("\\n").trim();
+    if(!text)throw {status:502,code:String(candidate?.finishReason||"NO_TEXT"),message:String(result.promptFeedback?.blockReason||"Provider returned no text")};
+    const chunks=candidate?.groundingMetadata?.groundingChunks||[];
+    sources=chunks.map((chunk:any)=>chunk.web).filter((w:any)=>w&&typeof w.uri==="string"&&/^https?:\\/\\//.test(w.uri)).map((w:any)=>({title:String(w.title||w.uri).slice(0,180),uri:w.uri})).filter((s:any,i:number,a:any[])=>a.findIndex((x:any)=>x.uri===s.uri)===i).slice(0,6);
+    return text;
+   }finally{clearTimeout(timeout);}
+  }});
+  // OpenRouter's free router only selects free models; it cannot silently fall back to paid models.
+  if(openRouterKey&&!hasBinaryAttachment)providers.push({name:"OpenRouter Free",run:async()=>{
+   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
+   try{
+    const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{signal:controller.signal,method:"POST",headers:{"Authorization":`Bearer ${openRouterKey}`,"Content-Type":"application/json","HTTP-Referer":"https://kennixstore.github.io/kennix-store/","X-Title":"KENNIX AI"},body:JSON.stringify({model:"openrouter/free",messages:openAiMessages,max_tokens:900,temperature:0.6})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw {status:response.status,code:String(result?.error?.code||"OPENROUTER_ERROR"),message:String(result?.error?.message||"Free model unavailable").slice(0,220)};
+    const text=result.choices?.[0]?.message?.content;
+    if(typeof text!=="string"||!text.trim())throw {status:502,code:"NO_TEXT",message:"Free model returned no text"};
+    return text.trim();
+   }finally{clearTimeout(timeout);}
+  }});
+  // Groq is deliberately opt-in: only add its key after confirming the account's selected model is free.
+  if(groqKey&&Deno.env.get("ENABLE_GROQ_FALLBACK")==="true"&&!hasBinaryAttachment)providers.push({name:"Groq",run:async()=>{
+   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
+   try{
+    const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{signal:controller.signal,method:"POST",headers:{"Authorization":`Bearer ${groqKey}`,"Content-Type":"application/json"},body:JSON.stringify({model:Deno.env.get("GROQ_MODEL")||"openai/gpt-oss-20b",messages:openAiMessages,max_tokens:900,temperature:0.6})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw {status:response.status,code:String(result?.error?.code||"GROQ_ERROR"),message:String(result?.error?.message||"Groq request failed").slice(0,220)};
+    const text=result.choices?.[0]?.message?.content;
+    if(typeof text!=="string"||!text.trim())throw {status:502,code:"NO_TEXT",message:"Groq returned no text"};
+    return text.trim();
+   }finally{clearTimeout(timeout);}
+  }});
+  for(const provider of providers){
+   try{reply=await provider.run();usedProvider=provider.name;break;}
+   catch(e:any){
+    const status=Number(e?.status||((e?.name==="AbortError")?504:503));
+    lastFailure={http_status:status,provider_code:String(e?.code||((e?.name==="AbortError")?"TIMEOUT":"NETWORK_ERROR")),provider_message:String(e?.message||e||"Provider failed").replace(/[\\r\\n]+/g," ").slice(0,220)};
+    console.error("KENNIX AI provider unavailable",provider.name,lastFailure);
+    // Do not continue after invalid credentials, malformed requests, or policy errors.
+    if([400,401,403].includes(status))continue;
    }
-   if(reply)break;
   }
   if(!reply){
    const status=lastFailure?.http_status===429?429:([500,502,503,504].includes(lastFailure?.http_status)?503:502);
    console.error("All KENNIX AI models failed",modelsTried,lastFailure);
    return json({error:"KENNIX AI is temporarily unavailable. Please try again shortly.",diagnostic:{...lastFailure,models_tried:modelsTried}},status);
   }
-  return json({reply,sources});
+  return json({reply,sources,provider:usedProvider});
  }catch(e){console.error("KENNIX AI failed",e);return json({error:"Something went wrong. Please try again."},500);}
 });
