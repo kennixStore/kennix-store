@@ -114,7 +114,7 @@ Deno.serve(async(req)=>{
   }
   if(!reply){
    const status=lastFailure?.http_status===429?429:([500,502,503,504].includes(lastFailure?.http_status)?503:502);
-   console.error("All KENNIX AI models failed",modelsTried,lastFailure);
+   console.error("All KENNIX AI providers failed",lastFailure);
    return json({error:"KENNIX AI is temporarily unavailable. Please try again shortly.",diagnostic:{...lastFailure,models_tried:modelsTried}},status);
   }
   return json({reply,sources,provider:usedProvider});
