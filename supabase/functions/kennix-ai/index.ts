@@ -105,14 +105,28 @@ Deno.serve(async(req)=>{
   }});
   for(const provider of providers){
    providersTried.push(provider.name);
-   try{reply=await provider.run();usedProvider=provider.name;break;}
-   catch(e:any){
-    const status=Number(e?.status||((e?.name==="AbortError")?504:503));
-    lastFailure={http_status:status,provider_code:String(e?.code||((e?.name==="AbortError")?"TIMEOUT":"NETWORK_ERROR")),provider_message:String(e?.message||e||"Provider failed").replace(/[\r\n]+/g," ").slice(0,220)};
-    console.error("KENNIX AI provider unavailable",provider.name,lastFailure);
-    // Do not continue after invalid credentials, malformed requests, or policy errors.
-    if([400,401,403].includes(status))continue;
+   // Gemini can briefly return 503 during capacity spikes. Retry it once before
+   // switching to the configured backup providers; never loop or retry quota errors.
+   const maxAttempts=provider.name==="Gemini"?2:1;
+   for(let attempt=1;attempt<=maxAttempts;attempt++){
+    try{
+     reply=await provider.run();
+     usedProvider=provider.name;
+     break;
+    }catch(e:any){
+     const status=Number(e?.status||((e?.name==="AbortError")?504:503));
+     lastFailure={http_status:status,provider_code:String(e?.code||((e?.name==="AbortError")?"TIMEOUT":"NETWORK_ERROR")),provider_message:String(e?.message||e||"Provider failed").replace(/[\r\n]+/g," ").slice(0,220)};
+     console.error("KENNIX AI provider unavailable",provider.name,lastFailure);
+     const retryable=[500,502,503,504].includes(status);
+     if(attempt<maxAttempts&&retryable){
+      console.warn("Retrying temporary KENNIX AI provider failure",provider.name,attempt);
+      await new Promise(resolve=>setTimeout(resolve,1000));
+      continue;
+     }
+     break;
+    }
    }
+   if(reply)break;
   }
   if(!reply){
    const status=lastFailure?.http_status===429?429:([500,502,503,504].includes(lastFailure?.http_status)?503:502);
