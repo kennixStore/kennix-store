@@ -36,6 +36,6 @@ Deno.serve(async(req)=>{
   const result=await response.json();
   if(!response.ok){const providerCode=String(result?.error?.status||"UNKNOWN").slice(0,80);const providerMessage=String(result?.error?.message||"No provider message returned").replace(/[\r\n]+/g," ").slice(0,240);console.error("Gemini API error",response.status,providerCode,providerMessage);return json({error:"KENNIX AI provider request failed.",diagnostic:{http_status:response.status,provider_code:providerCode,provider_message:providerMessage}},502);}
   const reply=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("\n").trim();
-  return reply?json({reply}):json({error:"I couldn't generate a reply just now. Please try again."},502);
+  if(!reply){const finishReason=String(result.candidates?.[0]?.finishReason||"NO_CANDIDATE").slice(0,80);const blockReason=String(result.promptFeedback?.blockReason||"NONE").slice(0,80);console.error("Gemini returned no text",finishReason,blockReason);return json({error:"Gemini returned no text.",diagnostic:{finish_reason:finishReason,block_reason:blockReason}},502);} return json({reply});
  }catch(e){console.error("KENNIX AI failed",e);return json({error:"Something went wrong. Please try again."},500);}
 });
