@@ -75,18 +75,6 @@ Deno.serve(async(req)=>{
     return text;
    }finally{clearTimeout(timeout);}
   }});
-  // OpenRouter's free router only selects free models; it cannot silently fall back to paid models.
-  if(openRouterKey&&!hasBinaryAttachment)providers.push({name:"OpenRouter Free",run:async()=>{
-   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
-   try{
-    const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{signal:controller.signal,method:"POST",headers:{"Authorization":`Bearer ${openRouterKey}`,"Content-Type":"application/json","HTTP-Referer":"https://kennixstore.github.io/kennix-store/","X-Title":"KENNIX AI"},body:JSON.stringify({model:"openrouter/free",messages:openAiMessages,max_tokens:900,temperature:0.6})});
-    const result=await response.json().catch(()=>({}));
-    if(!response.ok)throw {status:response.status,code:String(result?.error?.code||"OPENROUTER_ERROR"),message:String(result?.error?.message||"Free model unavailable").slice(0,220)};
-    const text=result.choices?.[0]?.message?.content;
-    if(typeof text!=="string"||!text.trim())throw {status:502,code:"NO_TEXT",message:"Free model returned no text"};
-    return text.trim();
-   }finally{clearTimeout(timeout);}
-  }});
   // Groq is deliberately opt-in: only add its key after confirming the account's selected model is free.
   if(groqKey&&Deno.env.get("ENABLE_GROQ_FALLBACK")==="true"&&!hasBinaryAttachment)providers.push({name:"Groq",run:async()=>{
    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
@@ -96,6 +84,18 @@ Deno.serve(async(req)=>{
     if(!response.ok)throw {status:response.status,code:String(result?.error?.code||"GROQ_ERROR"),message:String(result?.error?.message||"Groq request failed").slice(0,220)};
     const text=result.choices?.[0]?.message?.content;
     if(typeof text!=="string"||!text.trim())throw {status:502,code:"NO_TEXT",message:"Groq returned no text"};
+    return text.trim();
+   }finally{clearTimeout(timeout);}
+  }});
+  // OpenRouter's free router only selects free models; it cannot silently fall back to paid models.
+  if(openRouterKey&&!hasBinaryAttachment)providers.push({name:"OpenRouter Free",run:async()=>{
+   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
+   try{
+    const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{signal:controller.signal,method:"POST",headers:{"Authorization":`Bearer ${openRouterKey}`,"Content-Type":"application/json","HTTP-Referer":"https://kennixstore.github.io/kennix-store/","X-Title":"KENNIX AI"},body:JSON.stringify({model:"openrouter/free",messages:openAiMessages,max_tokens:900,temperature:0.6})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw {status:response.status,code:String(result?.error?.code||"OPENROUTER_ERROR"),message:String(result?.error?.message||"Free model unavailable").slice(0,220)};
+    const text=result.choices?.[0]?.message?.content;
+    if(typeof text!=="string"||!text.trim())throw {status:502,code:"NO_TEXT",message:"Free model returned no text"};
     return text.trim();
    }finally{clearTimeout(timeout);}
   }});
