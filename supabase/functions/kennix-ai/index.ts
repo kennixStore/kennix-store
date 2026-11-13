@@ -70,7 +70,7 @@ Deno.serve(async(req)=>{
     if(response.ok){
      reply=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("\\n").trim();
      const groundingChunks=result.candidates?.[0]?.groundingMetadata?.groundingChunks||[];
-     sources=groundingChunks.map((chunk:any)=>chunk.web).filter((web:any)=>web&&typeof web.uri==="string"&&/^https?:\\/\\//i.test(web.uri)).map((web:any)=>({title:String(web.title||web.uri).slice(0,180),uri:web.uri})).filter((source:any,index:number,list:any[])=>list.findIndex((item:any)=>item.uri===source.uri)===index).slice(0,6);
+     sources=groundingChunks.map((chunk:any)=>chunk.web).filter((web:any)=>web&&typeof web.uri==="string"&&(web.uri.startsWith("https://")||web.uri.startsWith("http://"))).map((web:any)=>({title:String(web.title||web.uri).slice(0,180),uri:web.uri})).filter((source:any,index:number,list:any[])=>list.findIndex((item:any)=>item.uri===source.uri)===index).slice(0,6);
      if(reply)break;
      lastFailure={http_status:502,provider_code:String(result.candidates?.[0]?.finishReason||"NO_TEXT"),provider_message:String(result.promptFeedback?.blockReason||"Provider returned no text").slice(0,240)};
      break;
