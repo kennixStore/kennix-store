@@ -201,7 +201,15 @@ async function checkLogin() {
 /* DASHBOARD ANALYTICS DEMO PREVIEW */
 const demoBaseVisitors=51200;
 const demoBaseOrders=3128;
-const demoVisitorSteps=[0,0,0,0,0,0,0,1,1,2,2,3];
+function pickVisitorIncrease(zeroStreak){
+ const roll=Math.random()*100;
+ let increase=roll<30?0:roll<50?1:roll<75?2:3;
+ if(zeroStreak>=15&&increase===0){
+  const nonZeroRoll=Math.random()*70;
+  increase=nonZeroRoll<20?1:nonZeroRoll<45?2:3;
+ }
+ return increase;
+}
 const demoOrderStep=6;
 const demoStorageKey="kennix_dashboard_demo_visitors_v1";
 const zeroStreakKey="kennix_dashboard_zero_streak_v1";
@@ -210,8 +218,7 @@ function loadDashboardStats(){
  let zeroStreak=Number(localStorage.getItem(zeroStreakKey))||0;
  if(!Number.isFinite(visitors)||visitors<demoBaseVisitors){visitors=demoBaseVisitors;zeroStreak=0;}
  else {
-  let visitorIncrease=demoVisitorSteps[Math.floor(Math.random()*demoVisitorSteps.length)];
-  if(zeroStreak>=15)visitorIncrease=1+Math.floor(Math.random()*3);
+  const visitorIncrease=pickVisitorIncrease(zeroStreak);
   if(visitorIncrease===0)zeroStreak++;else zeroStreak=0;
   visitors+=visitorIncrease;
  }
