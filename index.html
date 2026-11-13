@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#022c22"><title>KENNIX — Shop Like a Billionaire.</title>
+<meta name="theme-color" content="#022c22"><link rel="manifest" href="/manifest.webmanifest"><title>KENNIX — Shop Like a Billionaire.</title>
 <meta name="description" content="Shop fashion, phones, accessories, electronics, networking devices, power solutions and home appliances at KENNIX, a Nigerian online retail brand founded by Eze Kenechukwu Kennedy (Kenny).">
 <meta name="msvalidate.01" content="6C82956FFC77B15C71ECAE7DAE87824D" />
 <link rel="canonical" href="https://www.kennix.com.ng/">
@@ -155,4 +155,97 @@
 @media(prefers-reduced-motion:reduce){.kennix-bag,.kennix-bag:after,.kennix-welcome,.kennix-loading{animation:none}.kennix-progress-track span{transition:none}}
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2'"></script><script src="app.js?v=20261113-bag-loader"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2'"></script><script src="app.js?v=20261113-bag-loader"></script>
+<!-- KENNIX install invitation -->
+<style>
+.kennix-install-backdrop{position:fixed;inset:0;z-index:15000;display:none;place-items:center;padding:20px;background:#001b14d9;backdrop-filter:blur(7px)}
+.kennix-install-backdrop.is-visible{display:grid}
+.kennix-install-card{position:relative;width:min(100%,390px);padding:30px 24px 24px;border:1px solid #d4af37;border-radius:18px;background:#f8f8f3;color:#17231d;text-align:center;box-shadow:0 24px 80px #0006;animation:kennixInstallIn .28s ease both}
+.kennix-install-mark{width:58px;height:58px;margin:0 auto 15px;display:grid;place-items:center;border-radius:15px;background:#022c22;color:#d4af37;font-size:22px;font-weight:800;letter-spacing:2px}
+.kennix-install-card h2{margin:0 0 9px;color:#022c22;font-size:25px}
+.kennix-install-card p{margin:0 auto 21px;max-width:290px;color:#657168;font-size:13px;line-height:1.6}
+.kennix-install-actions{display:grid;gap:10px}
+.kennix-install-actions button{min-height:48px;border-radius:8px;font-weight:800;letter-spacing:.06em;font-size:11px;cursor:pointer}
+.kennix-install-primary{border:0;background:#022c22;color:#fff}
+.kennix-install-secondary{border:1px solid #c9d0c9;background:transparent;color:#34443a}
+.kennix-install-close{position:absolute;top:10px;right:12px;border:0;background:transparent;color:#68736b;font-size:25px;cursor:pointer}
+.kennix-install-help{margin:14px 0 0!important;font-size:11px!important}
+@keyframes kennixInstallIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.kennix-install-card{animation:none}}
+</style>
+<div class="kennix-install-backdrop" id="kennix-install-dialog" role="dialog" aria-modal="true" aria-labelledby="kennix-install-title" aria-describedby="kennix-install-description">
+ <section class="kennix-install-card">
+  <button class="kennix-install-close" id="kennix-install-close" type="button" aria-label="Close install invitation">×</button>
+  <div class="kennix-install-mark" aria-hidden="true">KX</div>
+  <h2 id="kennix-install-title">Take KENNIX with you.</h2>
+  <p id="kennix-install-description">Install the KENNIX app for quick access to your store, right from your home screen.</p>
+  <div class="kennix-install-actions">
+   <button class="kennix-install-primary" id="kennix-install-action" type="button">INSTALL KENNIX APP</button>
+   <button class="kennix-install-secondary" id="kennix-continue-web" type="button">CONTINUE ON WEB</button>
+  </div>
+  <p class="kennix-install-help" id="kennix-install-help" hidden></p>
+ </section>
+</div>
+<script>
+(()=> {
+ const dialog=document.getElementById("kennix-install-dialog");
+ if(!dialog)return;
+ const KEY="kennix_install_prompt_dismissed_at";
+ const WEEK=7*24*60*60*1000;
+ const standalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+ let installPrompt=null,shown=false;
+ const close=remember=>{
+  dialog.classList.remove("is-visible");
+  if(remember){try{localStorage.setItem(KEY,String(Date.now()))}catch{}}
+ };
+ const show=()=>{
+  if(shown||standalone())return;
+  let last=0;try{last=Number(localStorage.getItem(KEY)||0)}catch{}
+  if(last&&Date.now()-last<WEEK)return;
+  shown=true;
+  dialog.classList.add("is-visible");
+  document.getElementById("kennix-install-action").focus();
+ };
+ const waitForTerms=()=>{
+  const gate=document.getElementById("terms-gate");
+  if(gate&&!gate.hidden){setTimeout(waitForTerms,500);return}
+  setTimeout(show,3000);
+ };
+ window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  installPrompt=event;
+ });
+ window.addEventListener("appinstalled",()=>{
+  installPrompt=null;
+  close(true);
+  try{localStorage.setItem(KEY,String(Date.now()))}catch{}
+ });
+ document.getElementById("kennix-install-action").addEventListener("click",async()=>{
+  const help=document.getElementById("kennix-install-help");
+  if(installPrompt){
+   installPrompt.prompt();
+   const choice=await installPrompt.userChoice;
+   installPrompt=null;
+   if(choice?.outcome==="accepted"){close(true);return}
+   close(true);
+   return;
+  }
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  help.hidden=false;
+  help.textContent=isIOS
+   ?"On your iPhone or iPad, tap Share, then choose “Add to Home Screen” to install KENNIX."
+   :"Your browser does not offer one-tap installation right now. Open the browser’s install option or menu and choose “Install app” or “Add to Home screen.”";
+ });
+ document.getElementById("kennix-continue-web").addEventListener("click",()=>close(true));
+ document.getElementById("kennix-install-close").addEventListener("click",()=>close(true));
+ dialog.addEventListener("click",event=>{if(event.target===dialog)close(true)});
+ document.addEventListener("keydown",event=>{if(event.key==="Escape"&&dialog.classList.contains("is-visible"))close(true)});
+ if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(error=>console.warn("KENNIX app setup unavailable:",error)));
+ }
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",waitForTerms,{once:true});
+ else waitForTerms();
+})();
+</script>
+
+</body></html>
