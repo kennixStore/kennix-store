@@ -23,7 +23,7 @@ Deno.serve(async(req)=>{
   if(await limited.json()!==true)return json({error:"You’ve reached the short-term message limit. Please wait a minute and try again."},429);
   let catalogueContext="";
   const latestQuestion=messages[messages.length-1].content;
-  const needsStoreData=/\\b(kennix|store|shop|product|catalogue|catalog|stock|order|delivery|payment|tracking|buy|sell)\\b/i.test(latestQuestion);
+  const needsStoreData=/\b(kennix|store|shop|product|catalogue|catalog|stock|order|delivery|payment|tracking|buy|sell)\b/i.test(latestQuestion);
   if(needsStoreData){
    catalogueContext="Live product catalogue is temporarily unavailable. Do not guess current products, prices or stock.";
    try{
@@ -66,7 +66,7 @@ Deno.serve(async(req)=>{
      const controller=new AbortController();
      const timeout=setTimeout(()=>controller.abort(),18000);
      try{
-      response=await fetch(urlForModel,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,...(/\\b(latest|today|current|right now|this week|news|weather|recent|2026|2025|currently)\\b/i.test(latestQuestion)?{tools:[{google_search:{}}]}:{}),generationConfig:{maxOutputTokens:900,temperature:0.6}})});
+      response=await fetch(urlForModel,{signal:controller.signal,method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({systemInstruction:{parts:[{text:systemInstruction}]},contents,...(/\b(latest|today|current|right now|this week|news|weather|recent|2026|2025|currently)\b/i.test(latestQuestion)?{tools:[{google_search:{}}]}:{}),generationConfig:{maxOutputTokens:900,temperature:0.6}})});
       result=await response.json().catch(()=>({}));
      }finally{clearTimeout(timeout);}
     } catch (e) {
