@@ -17,6 +17,10 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_ID: shdstohkbpvoxjtghsob
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      ENABLE_GROQ_FALLBACK: ${{ secrets.ENABLE_GROQ_FALLBACK }}
+      GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - name: Check out repository
@@ -26,7 +30,6 @@ jobs:
         shell: bash
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Missing GitHub secret: SUPABASE_ACCESS_TOKEN" && exit 1)
-          test -n "$GEMINI_API_KEY" || (echo "Missing GitHub secret: GEMINI_API_KEY" && exit 1)
           test -n "$SUPABASE_PUBLISHABLE_KEY" || (echo "Missing GitHub secret: SUPABASE_PUBLISHABLE_KEY" && exit 1)
 
       - name: Install Supabase CLI
@@ -34,9 +37,20 @@ jobs:
         with:
           version: latest
 
-      - name: Store Gemini key in Supabase Edge Function secrets
+      - name: Sync configured AI provider secrets (all optional)
         shell: bash
-        run: supabase secrets set "GEMINI_API_KEY=$GEMINI_API_KEY" --remote="$SUPABASE_PROJECT_ID" --yes
+        run: |
+          args=()
+          [ -z "$GEMINI_API_KEY" ] || args+=("GEMINI_API_KEY=$GEMINI_API_KEY")
+          [ -z "$OPENROUTER_API_KEY" ] || args+=("OPENROUTER_API_KEY=$OPENROUTER_API_KEY")
+          [ -z "$GROQ_API_KEY" ] || args+=("GROQ_API_KEY=$GROQ_API_KEY")
+          [ -z "$ENABLE_GROQ_FALLBACK" ] || args+=("ENABLE_GROQ_FALLBACK=$ENABLE_GROQ_FALLBACK")
+          [ -z "$GROQ_MODEL" ] || args+=("GROQ_MODEL=$GROQ_MODEL")
+          if [ "${#args[@]}" -gt 0 ]; then
+            supabase secrets set "${args[@]}" --remote="$SUPABASE_PROJECT_ID" --yes
+          else
+            echo "No AI provider keys supplied; deploying health endpoint only."
+          fi
 
       - name: Deploy KENNIX AI Edge Function
         shell: bash
