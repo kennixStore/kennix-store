@@ -165,15 +165,15 @@ Warranty: 6 months"></textarea>
 </section>
 <section class="card admin-panel" data-admin-panel="promotions" hidden>
 <h2>🎟️ Coupons & Referrals</h2>
-<p class="small">Create discount codes and referral codes. New codes are inactive until you switch them on.</p>
+<p class="small">Create discount codes and referral codes. New codes are inactive until you switch them on. Referral rewards stay pending until the referred order is both paid and marked Delivered. They are then approved automatically; transfer the reward by bank and mark it Paid.</p>
 <div class="card">
 <h3>Create coupon</h3>
 <form id="kennixCouponForm">
 <label for="couponAdminCode">Coupon code</label><input id="couponAdminCode" maxlength="40" required placeholder="WELCOME10">
 <label for="couponAdminType">Discount type</label><select id="couponAdminType"><option value="percent">Percentage (%)</option><option value="fixed">Fixed amount (₦)</option></select>
-<label for="couponAdminValue">Discount value</label><input id="couponAdminValue" type="number" min="1" step="0.01" required>
-<label for="couponAdminMinimum">Minimum order (₦)</label><input id="couponAdminMinimum" type="number" min="0" step="0.01" value="0">
-<label for="couponAdminMax">Maximum discount (₦, optional)</label><input id="couponAdminMax" type="number" min="0" step="0.01" placeholder="No maximum">
+<label for="couponAdminValue">Discount value</label><input id="couponAdminValue" type="number" min="1" step="0.01" value="10" required>
+<label for="couponAdminMinimum">Minimum order (₦)</label><input id="couponAdminMinimum" type="number" min="0" step="0.01" value="5000">
+<label for="couponAdminMax">Maximum discount (₦, optional)</label><input id="couponAdminMax" type="number" min="0" step="0.01" value="2000" placeholder="No maximum">
 <label for="couponAdminLimit">Usage limit (optional)</label><input id="couponAdminLimit" type="number" min="1" step="1" placeholder="Unlimited">
 <button type="submit" id="saveKennixCoupon">Create inactive coupon</button><p id="kennixCouponMessage" class="small" aria-live="polite"></p>
 </form>
@@ -185,7 +185,7 @@ Warranty: 6 months"></textarea>
 <label for="referralAdminCode">Referral code</label><input id="referralAdminCode" maxlength="40" required placeholder="KENNYFRIEND">
 <label for="referralAdminName">Referrer's name</label><input id="referralAdminName" maxlength="120" placeholder="Name">
 <label for="referralAdminPhone">Referrer's phone</label><input id="referralAdminPhone" maxlength="30" placeholder="Phone number">
-<label for="referralAdminReward">Reward amount (₦)</label><input id="referralAdminReward" type="number" min="0" step="0.01" value="0" required>
+<label for="referralAdminReward">Reward amount (₦)</label><input id="referralAdminReward" type="number" min="0" step="0.01" value="500" required>
 <button type="submit" id="saveKennixReferral">Create inactive referral code</button><p id="kennixReferralMessage" class="small" aria-live="polite"></p>
 </form>
 <h3>Existing referral codes</h3><button type="button" id="refreshKennixReferrals">Refresh referral codes</button><div id="kennixReferralList">Loading...</div>
@@ -934,16 +934,18 @@ async function loadKennixReferrals(){
 }
 async function loadKennixReferralRewards(){
  const box=document.getElementById("kennixReferralRewards");if(!box)return;box.textContent="Loading...";
- const {data,error}=await db.from("kennix_referral_rewards").select("id,referral_code,order_id,reward_amount,status,created_at,orders(payment_status)").order("created_at",{ascending:false}).limit(100);
+ const {data,error}=await db.from("kennix_referral_rewards").select("id,referral_code,order_id,reward_amount,status,created_at,orders(payment_status,status)").order("created_at",{ascending:false}).limit(100);
  if(error){box.textContent="Could not load rewards: "+error.message;return}
  box.replaceChildren();if(!data?.length){box.textContent="No referral rewards recorded yet.";return}
  data.forEach(row=>{
   const item=document.createElement("div");item.className="inventory-row";
   const title=document.createElement("strong");title.textContent=row.referral_code+" · Order #"+row.order_id;
-  const meta=document.createElement("span");meta.className="inventory-meta";meta.textContent="₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+row.status;
-  const paymentConfirmed=row.orders?.payment_status==="paid";
-  const select=document.createElement("select");["pending","approved","paid","void"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v.toUpperCase();if(["approved","paid"].includes(v)&&!paymentConfirmed)o.disabled=true;select.append(o)});select.value=row.status;
-  select.onchange=async()=>{if(["approved","paid"].includes(select.value)&&!paymentConfirmed){alert("This reward can only be approved after the customer payment is confirmed.");select.value=row.status;return}const update={status:select.value,paid_at:select.value==="paid"?new Date().toISOString():null};const {error}=await db.from("kennix_referral_rewards").update(update).eq("id",row.id);if(error){alert(error.message);select.value=row.status}else{row.status=select.value;meta.textContent="₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+row.status}};
+  const meta=document.createElement("span");meta.className="inventory-meta";
+  const rewardEligible=row.orders?.payment_status==="paid" && row.orders?.status==="Delivered";
+  const eligibilityText=rewardEligible?"Order paid and delivered — reward eligible":row.orders?.payment_status!=="paid"?"Waiting for confirmed payment":"Waiting for order delivery";
+  meta.textContent="₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+row.status+" · "+eligibilityText;
+  const select=document.createElement("select");["pending","approved","paid","void"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v.toUpperCase();if(["approved","paid"].includes(v)&&!rewardEligible)o.disabled=true;select.append(o)});select.value=row.status;
+  select.onchange=async()=>{if(["approved","paid"].includes(select.value)&&!rewardEligible){alert("This reward can only be approved after the customer's order is paid and marked Delivered.");select.value=row.status;return}const update={status:select.value,paid_at:select.value==="paid"?new Date().toISOString():null};const {error}=await db.from("kennix_referral_rewards").update(update).eq("id",row.id);if(error){alert(error.message);select.value=row.status}else{row.status=select.value;meta.textContent="₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+row.status+" · "+eligibilityText}};
   item.append(title,meta,select);box.append(item);
  });
 }
