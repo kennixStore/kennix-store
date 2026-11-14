@@ -88,6 +88,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <button class="admin-tab" type="button" data-admin-tab="upload"><strong>➕ Upload Products</strong><span>Add products to the store</span></button>
 <button class="admin-tab" type="button" data-admin-tab="products"><strong>🛍️ Products</strong><span>Edit or remove products</span></button>
 <button class="admin-tab" type="button" data-admin-tab="options"><strong>🎨 Colors & Sizes</strong><span>Add product options and stock</span></button>
+<button class="admin-tab" type="button" data-admin-tab="promotions"><strong>🎟️ Coupons & Referrals</strong><span>Manage discounts and referral rewards</span></button>
 <button class="admin-tab" type="button" data-admin-tab="reviews"><strong>⭐ Reviews</strong><span>Approve or remove customer reviews</span></button>
 <button class="admin-tab" type="button" data-admin-tab="guide"><strong>📘 Admin Guide</strong><span>Simple instructions for store tasks</span></button>
 <button class="admin-tab" type="button" data-admin-tab="suppliers"><strong>🤝 Suppliers</strong><span>Track suppliers, costs and sourcing</span></button>
@@ -161,6 +162,35 @@ Warranty: 6 months"></textarea>
 <button id="saveSupplier" type="submit">Save Supplier Record</button><p id="supplierMessage" class="small" aria-live="polite"></p>
 </form>
 <h3>Saved Suppliers</h3><button type="button" id="refreshSuppliers">Refresh Suppliers</button><div id="supplierList">Supplier records will appear here.</div>
+</section>
+<section class="card admin-panel" data-admin-panel="promotions" hidden>
+<h2>🎟️ Coupons & Referrals</h2>
+<p class="small">Create discount codes and referral codes. New codes are inactive until you switch them on.</p>
+<div class="card">
+<h3>Create coupon</h3>
+<form id="kennixCouponForm">
+<label for="couponAdminCode">Coupon code</label><input id="couponAdminCode" maxlength="40" required placeholder="WELCOME10">
+<label for="couponAdminType">Discount type</label><select id="couponAdminType"><option value="percent">Percentage (%)</option><option value="fixed">Fixed amount (₦)</option></select>
+<label for="couponAdminValue">Discount value</label><input id="couponAdminValue" type="number" min="1" step="0.01" required>
+<label for="couponAdminMinimum">Minimum order (₦)</label><input id="couponAdminMinimum" type="number" min="0" step="0.01" value="0">
+<label for="couponAdminMax">Maximum discount (₦, optional)</label><input id="couponAdminMax" type="number" min="0" step="0.01" placeholder="No maximum">
+<label for="couponAdminLimit">Usage limit (optional)</label><input id="couponAdminLimit" type="number" min="1" step="1" placeholder="Unlimited">
+<button type="submit" id="saveKennixCoupon">Create inactive coupon</button><p id="kennixCouponMessage" class="small" aria-live="polite"></p>
+</form>
+<h3>Existing coupons</h3><button type="button" id="refreshKennixCoupons">Refresh coupons</button><div id="kennixCouponList">Loading...</div>
+</div>
+<div class="card">
+<h3>Create referral code</h3>
+<form id="kennixReferralForm">
+<label for="referralAdminCode">Referral code</label><input id="referralAdminCode" maxlength="40" required placeholder="KENNYFRIEND">
+<label for="referralAdminName">Referrer's name</label><input id="referralAdminName" maxlength="120" placeholder="Name">
+<label for="referralAdminPhone">Referrer's phone</label><input id="referralAdminPhone" maxlength="30" placeholder="Phone number">
+<label for="referralAdminReward">Reward amount (₦)</label><input id="referralAdminReward" type="number" min="0" step="0.01" value="0" required>
+<button type="submit" id="saveKennixReferral">Create inactive referral code</button><p id="kennixReferralMessage" class="small" aria-live="polite"></p>
+</form>
+<h3>Existing referral codes</h3><button type="button" id="refreshKennixReferrals">Refresh referral codes</button><div id="kennixReferralList">Loading...</div>
+<h3>Referral rewards</h3><div id="kennixReferralRewards">Loading...</div>
+</div>
 </section>
 <section class="card admin-panel" data-admin-panel="guide" hidden>
 <h2>📘 KENNIX Admin Guide</h2>
@@ -871,12 +901,73 @@ function showAdminPanel(name){
 document.querySelectorAll("[data-admin-tab]").forEach(tab=>tab.addEventListener("click",()=>showAdminPanel(tab.dataset.adminTab)));
 showAdminPanel("overview");
 
+/* KENNIX PROMOTIONS & REFERRALS */
+async function loadKennixCoupons(){
+ const box=document.getElementById("kennixCouponList");if(!box)return;box.textContent="Loading...";
+ const {data,error}=await db.from("kennix_coupons").select("*").order("created_at",{ascending:false});
+ if(error){box.textContent="Could not load coupons: "+error.message;return}
+ box.replaceChildren();if(!data?.length){box.textContent="No coupons created yet.";return}
+ data.forEach(row=>{
+  const item=document.createElement("div");item.className="inventory-row";
+  const title=document.createElement("strong");title.textContent=row.code+" — "+(row.discount_type==="percent"?row.discount_value+"%":"₦"+Number(row.discount_value).toLocaleString("en-NG"));
+  const meta=document.createElement("span");meta.className="inventory-meta";meta.textContent=(row.is_active?"Active":"Inactive")+" · Used "+row.usage_count+(row.usage_limit?"/"+row.usage_limit:"")+" · Minimum ₦"+Number(row.minimum_order).toLocaleString("en-NG");
+  const toggle=document.createElement("button");toggle.type="button";toggle.textContent=row.is_active?"Deactivate":"Activate";
+  toggle.onclick=async()=>{toggle.disabled=true;const {error}=await db.from("kennix_coupons").update({is_active:!row.is_active}).eq("id",row.id);if(error)alert(error.message);await loadKennixCoupons()};
+  const del=document.createElement("button");del.type="button";del.className="deleteBtn";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete coupon "+row.code+"?"))return;const {error}=await db.from("kennix_coupons").delete().eq("id",row.id);if(error)alert(error.message);await loadKennixCoupons()};
+  item.append(title,meta,toggle,del);box.append(item);
+ });
+}
+async function loadKennixReferrals(){
+ const box=document.getElementById("kennixReferralList");if(!box)return;box.textContent="Loading...";
+ const {data,error}=await db.from("kennix_referral_codes").select("*").order("created_at",{ascending:false});
+ if(error){box.textContent="Could not load referral codes: "+error.message;return}
+ box.replaceChildren();if(!data?.length){box.textContent="No referral codes created yet.";return}
+ data.forEach(row=>{
+  const item=document.createElement("div");item.className="inventory-row";
+  const title=document.createElement("strong");title.textContent=row.code+" — "+(row.referrer_name||"Referrer");
+  const meta=document.createElement("span");meta.className="inventory-meta";meta.textContent=(row.is_active?"Active":"Inactive")+" · Reward ₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+(row.referrer_phone||"No phone");
+  const toggle=document.createElement("button");toggle.type="button";toggle.textContent=row.is_active?"Deactivate":"Activate";
+  toggle.onclick=async()=>{toggle.disabled=true;const {error}=await db.from("kennix_referral_codes").update({is_active:!row.is_active}).eq("id",row.id);if(error)alert(error.message);await loadKennixReferrals()};
+  const del=document.createElement("button");del.type="button";del.className="deleteBtn";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete referral code "+row.code+"?"))return;const {error}=await db.from("kennix_referral_codes").delete().eq("id",row.id);if(error)alert(error.message);await loadKennixReferrals()};
+  item.append(title,meta,toggle,del);box.append(item);
+ });
+}
+async function loadKennixReferralRewards(){
+ const box=document.getElementById("kennixReferralRewards");if(!box)return;box.textContent="Loading...";
+ const {data,error}=await db.from("kennix_referral_rewards").select("id,referral_code,order_id,reward_amount,status,created_at").order("created_at",{ascending:false}).limit(100);
+ if(error){box.textContent="Could not load rewards: "+error.message;return}
+ box.replaceChildren();if(!data?.length){box.textContent="No referral rewards recorded yet.";return}
+ data.forEach(row=>{
+  const item=document.createElement("div");item.className="inventory-row";
+  const title=document.createElement("strong");title.textContent=row.referral_code+" · Order #"+row.order_id;
+  const meta=document.createElement("span");meta.className="inventory-meta";meta.textContent="₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+row.status;
+  const select=document.createElement("select");["pending","approved","paid","void"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v.toUpperCase();select.append(o)});select.value=row.status;
+  select.onchange=async()=>{const update={status:select.value,paid_at:select.value==="paid"?new Date().toISOString():null};const {error}=await db.from("kennix_referral_rewards").update(update).eq("id",row.id);if(error){alert(error.message);select.value=row.status}else row.status=select.value};
+  item.append(title,meta,select);box.append(item);
+ });
+}
+document.getElementById("kennixCouponForm")?.addEventListener("submit",async e=>{
+ e.preventDefault();const f=e.currentTarget,b=document.getElementById("saveKennixCoupon"),m=document.getElementById("kennixCouponMessage");b.disabled=true;b.textContent="Saving...";
+ const value={code:f.elements.namedItem("couponAdminCode").value.trim().toUpperCase(),discount_type:f.elements.namedItem("couponAdminType").value,discount_value:Number(f.elements.namedItem("couponAdminValue").value),minimum_order:Number(f.elements.namedItem("couponAdminMinimum").value||0),maximum_discount:f.elements.namedItem("couponAdminMax").value?Number(f.elements.namedItem("couponAdminMax").value):null,usage_limit:f.elements.namedItem("couponAdminLimit").value?Number(f.elements.namedItem("couponAdminLimit").value):null,is_active:false};
+ const {error}=await db.from("kennix_coupons").insert(value);b.disabled=false;b.textContent="Create inactive coupon";m.textContent=error?"Could not create coupon: "+error.message:"Coupon created inactive. Activate it when ready.";if(!error){f.reset();f.elements.namedItem("couponAdminMinimum").value="0";await loadKennixCoupons()}
+});
+document.getElementById("kennixReferralForm")?.addEventListener("submit",async e=>{
+ e.preventDefault();const f=e.currentTarget,b=document.getElementById("saveKennixReferral"),m=document.getElementById("kennixReferralMessage");b.disabled=true;b.textContent="Saving...";
+ const value={code:f.elements.namedItem("referralAdminCode").value.trim().toUpperCase(),referrer_name:f.elements.namedItem("referralAdminName").value.trim()||null,referrer_phone:f.elements.namedItem("referralAdminPhone").value.trim()||null,reward_amount:Number(f.elements.namedItem("referralAdminReward").value),is_active:false};
+ const {error}=await db.from("kennix_referral_codes").insert(value);b.disabled=false;b.textContent="Create inactive referral code";m.textContent=error?"Could not create referral code: "+error.message:"Referral code created inactive. Activate it when ready.";if(!error){f.reset();f.elements.namedItem("referralAdminReward").value="0";await loadKennixReferrals()}
+});
+document.getElementById("refreshKennixCoupons")?.addEventListener("click",loadKennixCoupons);
+document.getElementById("refreshKennixReferrals")?.addEventListener("click",async()=>{await loadKennixReferrals();await loadKennixReferralRewards()});
+
 /* START */
 
 (async () => {
   if (await checkLogin()) {
     loadDashboardStats();
     loadSuppliers();
+    loadKennixCoupons();
+    loadKennixReferrals();
+    loadKennixReferralRewards();
     loadProducts();
     loadOrders();
     await loadVariantProducts();
