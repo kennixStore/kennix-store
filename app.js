@@ -161,7 +161,7 @@ async function loadProductReviews(productId,container){
 }
 function closeProduct(){get("product-modal")?.classList.remove("open");get("product-modal")?.setAttribute("aria-hidden","true");if(!get("cart-drawer")?.classList.contains("open"))get("overlay")?.classList.remove("open")}
 function setupCarousel(){const slides=[...document.querySelectorAll(".promo-slide")],dots=[...document.querySelectorAll("#promo-dots button")];if(!slides.length)return;const show=i=>{promoIndex=(i+slides.length)%slides.length;slides.forEach((s,n)=>s.classList.toggle("active",n===promoIndex));dots.forEach((d,n)=>d.classList.toggle("active",n===promoIndex))};const restart=()=>{clearInterval(promoTimer);promoTimer=setInterval(()=>show(promoIndex+1),3000)};get("promo-next").onclick=()=>{show(promoIndex+1);restart()};get("promo-prev").onclick=()=>{show(promoIndex-1);restart()};dots.forEach((d,i)=>d.onclick=()=>{show(i);restart()});let x=0;get("promo-slider").addEventListener("touchstart",e=>x=e.changedTouches[0].clientX,{passive:true});get("promo-slider").addEventListener("touchend",e=>{let dx=e.changedTouches[0].clientX-x;if(Math.abs(dx)>45){show(promoIndex+(dx<0?1:-1));restart()}},{passive:true});show(0);restart()}
-function setupMenu(){const b=get("menu-toggle"),nav=get("main-nav");b?.addEventListener("click",()=>{nav.classList.toggle("open");b.setAttribute("aria-expanded",String(nav.classList.contains("open")))});nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>nav.classList.remove("open")))}
+function setupMenu(){const b=get("menu-toggle"),nav=get("main-nav");if(nav&&!get("kennix-referral-menu-link")){const invite=document.createElement("a");invite.id="kennix-referral-menu-link";invite.href="#kennix-referral-hub";invite.textContent="🎁 Invite & Earn";nav.insertBefore(invite,nav.firstChild)}b?.addEventListener("click",()=>{nav.classList.toggle("open");b.setAttribute("aria-expanded",String(nav.classList.contains("open")))});nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classList.remove("open");b?.setAttribute("aria-expanded","false")}))}
 function setupNewsletter(){const form=get("newsletter-form");form?.addEventListener("submit",async e=>{e.preventDefault();const email=get("email").value.trim().toLowerCase(),button=form.querySelector("button");button.disabled=true;button.textContent="JOINING...";try{const {error}=await getDb().from("newsletter_subscribers").insert([{email}]);if(error){alert(error.code==="23505"?"This email has already joined the KENNIX list.":"Unable to join right now. Please try again.");return}alert("Welcome to the KENNIX list!");form.reset()}catch(err){console.error(err);alert("Something went wrong. Please try again.")}finally{button.disabled=false;button.textContent="JOIN THE LIST ↗"}})}
 
 function openCheckoutForm(){
@@ -560,32 +560,55 @@ function kxRenderCustomerReferralHub(){
  if(note)note.textContent=code?"Share your personal code. Each friend counts once after their order is paid and delivered.":"Your personal code is being prepared. You do not need to place an order to get one.";
  if(code)kxRefreshReferralProgress(code);
 }
-async function kxEnsureVisitorReferralCode(){
+async function kxEnsureVisitorReferralCode(force=false){
+ const note=get("kx-referral-hub-note"),value=get("kx-customer-referral-code"),retry=get("kx-referral-retry");
+ if(kxEnsureVisitorReferralCode.running)return;
  let visitorId="";
  try{
   visitorId=localStorage.getItem(KX_REFERRAL_VISITOR_KEY)||"";
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(visitorId)){
-   visitorId=crypto.randomUUID();
+   if(crypto?.randomUUID)visitorId=crypto.randomUUID();
+   else{const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");visitorId=hex.slice(0,8)+"-"+hex.slice(8,12)+"-"+hex.slice(12,16)+"-"+hex.slice(16,20)+"-"+hex.slice(20)}
    localStorage.setItem(KX_REFERRAL_VISITOR_KEY,visitorId);
   }
- }catch(_){return}
+ }catch(error){if(note)note.textContent="Your browser is blocking site storage or secure ID creation. Allow site storage, then tap Try Again.";console.error("KENNIX referral browser storage error:",error);return}
+ kxEnsureVisitorReferralCode.running=true;
+ if(value)value.textContent="Creating your personal code…";
+ if(note)note.textContent="Connecting securely to create your free personal code…";
+ if(retry)retry.hidden=true;
+ let lastError=null;
  try{
-  const response=await fetch(SUPABASE_URL+"/functions/v1/create-manual-transfer-order?visitor_id="+encodeURIComponent(visitorId),{
-   method:"GET",headers:{"apikey":SUPABASE_PUBLISHABLE_KEY}
-  });
-  const data=await response.json();
-  if(!response.ok||!data.success||!data.referral_code)throw new Error(data.error||"Could not create referral code");
-  localStorage.setItem(KX_CUSTOMER_REFERRAL_KEY,String(data.referral_code).toUpperCase());
-  kxRenderCustomerReferralHub();
+  for(let attempt=1;attempt<=2;attempt++){
+   try{
+    const endpoint=new URL(SUPABASE_URL+"/functions/v1/create-manual-transfer-order");
+    endpoint.searchParams.set("visitor_id",visitorId);endpoint.searchParams.set("_",String(Date.now()));
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try{response=await fetch(endpoint.toString(),{method:"GET",cache:"no-store",signal:controller.signal,headers:{"apikey":SUPABASE_PUBLISHABLE_KEY,"Accept":"application/json"}})}finally{clearTimeout(timeout)}
+    let data={};try{data=await response.json()}catch(_){}
+    if(!response.ok)throw new Error("Server returned "+response.status+(data?.error?": "+data.error:""));
+    if(!data?.success||!data?.referral_code)throw new Error(data?.error||"The server did not return a referral code.");
+    const code=String(data.referral_code).trim().toUpperCase();
+    if(!/^[A-Z0-9]{6,40}$/.test(code))throw new Error("The server returned an invalid referral code.");
+    localStorage.setItem(KX_CUSTOMER_REFERRAL_KEY,code);
+    if(value)value.textContent=code;
+    if(note)note.textContent="Your personal code is ready. Share it with friends — no purchase was needed to receive it.";
+    kxRefreshReferralProgress(code);if(retry)retry.hidden=true;kxEnsureVisitorReferralCode.running=false;return;
+   }catch(error){lastError=error;if(attempt<2)await new Promise(resolve=>setTimeout(resolve,1000))}
+  }
+  throw lastError||new Error("Referral service unavailable.");
  }catch(error){
-  const note=get("kx-referral-hub-note");
-  if(note)note.textContent="We couldn't create your code just now. Please refresh the page and try again.";
-  console.warn("KENNIX visitor referral code unavailable:",error);
- }
+  const reason=error?.name==="AbortError"?"The request timed out.":(error?.message||"Please try again.");
+  if(value)value.textContent="Code not available yet";
+  if(note)note.textContent="We couldn't create your code: "+reason;
+  if(retry)retry.hidden=false;
+  console.error("KENNIX visitor referral code unavailable:",error);
+ }finally{kxEnsureVisitorReferralCode.running=false}
 }
 function kxInitCustomerReferralHub(){
  kxRememberIncomingReferral();
  kxRenderCustomerReferralHub();
+ get("kx-referral-retry")?.addEventListener("click",()=>kxEnsureVisitorReferralCode(true));
  kxEnsureVisitorReferralCode();
  get("kx-copy-customer-referral")?.addEventListener("click",async()=>{
   let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
