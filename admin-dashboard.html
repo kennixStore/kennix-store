@@ -941,8 +941,9 @@ async function loadKennixReferralRewards(){
   const item=document.createElement("div");item.className="inventory-row";
   const title=document.createElement("strong");title.textContent=row.referral_code+" · Order #"+row.order_id;
   const meta=document.createElement("span");meta.className="inventory-meta";meta.textContent="₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+row.status;
-  const select=document.createElement("select");["pending","approved","paid","void"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v.toUpperCase();select.append(o)});select.value=row.status;
-  select.onchange=async()=>{const update={status:select.value,paid_at:select.value==="paid"?new Date().toISOString():null};const {error}=await db.from("kennix_referral_rewards").update(update).eq("id",row.id);if(error){alert(error.message);select.value=row.status}else row.status=select.value};
+  const paymentConfirmed=row.orders?.payment_status==="paid";
+  const select=document.createElement("select");["pending","approved","paid","void"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v.toUpperCase();if(["approved","paid"].includes(v)&&!paymentConfirmed)o.disabled=true;select.append(o)});select.value=row.status;
+  select.onchange=async()=>{if(["approved","paid"].includes(select.value)&&!paymentConfirmed){alert("This reward can only be approved after the customer payment is confirmed.");select.value=row.status;return}const update={status:select.value,paid_at:select.value==="paid"?new Date().toISOString():null};const {error}=await db.from("kennix_referral_rewards").update(update).eq("id",row.id);if(error){alert(error.message);select.value=row.status}else{row.status=select.value;meta.textContent="₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+row.status}};
   item.append(title,meta,select);box.append(item);
  });
 }
