@@ -74,24 +74,10 @@ Deno.serve(async (req) => {
       let compareAtPrice = product.compare_at_price === null ? null : Number(product.compare_at_price);
       let variantLabel: string | null = null;
 
-      if (variantId === null) {
-        const { data: activeVariants, error } = await supabase
-          .from("product_variants").select("id")
-          .eq("product_id", productId).eq("is_active", true).limit(1);
-        if (error) throw error;
-        if (activeVariants?.length) return reply({ error: `Select a size/colour for ${product["Name"]}.` }, 400);
-      } else {
-        const { data: variant, error } = await supabase
-          .from("product_variants")
-          .select("id, color, size, stock_quantity, price, compare_at_price, is_active")
-          .eq("id", variantId).eq("product_id", productId).single();
-        if (error || !variant || variant.is_active !== true || Number(variant.stock_quantity) < quantity) {
-          return reply({ error: `The selected option for ${product["Name"]} is unavailable or has insufficient stock.` }, 400);
-        }
-        if (variant.price !== null) price = Number(variant.price);
-        if (variant.compare_at_price !== null) compareAtPrice = Number(variant.compare_at_price);
-        variantLabel = [variant.color, variant.size].filter(Boolean).join(" / ");
-      }
+      // KENNIX checkout no longer requires colour/size variants. Historical variant
+      // records remain untouched; all new orders use the product's base price.
+      const ignoredVariantId = variantId;
+      void ignoredVariantId;
 
       if (!Number.isFinite(price) || price <= 0) return reply({ error: "A product has an invalid price." }, 400);
       const lineTotal = Math.round(price * quantity * 100) / 100;
