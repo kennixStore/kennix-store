@@ -23,7 +23,7 @@ Deno.serve(async(req)=>{
   if(await limited.json()!==true)return json({error:"You’ve reached the short-term message limit. Please wait a minute and try again."},429);
   const dailyLimit=await fetch(`${url}/rest/v1/rpc/kennix_ai_allow_daily_request`,{method:"POST",headers:{"Content-Type":"application/json","apikey":service,"Authorization":`Bearer ${service}`},body:JSON.stringify({p_ip:ip})});
   if(!dailyLimit.ok)return json({error:"KENNIX AI is temporarily busy. Please try again shortly."},503);
-  if(await dailyLimit.json()!==true)return json({error:"You’ve used your 5 questions for today. Your free questions will reset at midnight Nigeria time. Please come back tomorrow."},429);
+  if(await dailyLimit.json()!==true)return json({error:"You've used your 5 free questions for today. Your questions will reset at midnight (Nigeria time). Please come back tomorrow. 💜"},429);
   let catalogueContext="";
   const latestQuestion=messages[messages.length-1].content;
   const needsStoreData=/\b(kennix|store|shop|product|catalogue|catalog|stock|order|delivery|payment|tracking|buy|sell)\b/i.test(latestQuestion);
