@@ -517,6 +517,7 @@ renderCart=function(...args){
    The same customer gets the same code on later orders/devices. */
 const KX_CUSTOMER_REFERRAL_KEY="kennix-customer-referral-code-v1";
 const KX_REFERRED_BY_KEY="kennix-referred-by-v1";
+const KX_REFERRAL_VISITOR_KEY="kennix-referral-visitor-id-v1";
 function kxRememberIncomingReferral(){
  try{
   const incoming=new URLSearchParams(location.search).get("ref");
@@ -553,15 +554,39 @@ function kxRenderCustomerReferralHub(){
  let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
  const value=get("kx-customer-referral-code"),note=get("kx-referral-hub-note");
  const copy=get("kx-copy-customer-referral"),share=get("kx-share-customer-referral");
- if(value)value.textContent=code||"Your code appears after your first order";
+ if(value)value.textContent=code||"Creating your personal code…";
  if(copy)copy.disabled=!code;
  if(share)share.disabled=!code;
- if(note)note.textContent=code?"Share your personal code. Each new friend counts once, after their order is paid and delivered.":"Place your first order to receive your personal KENNIX referral code. It will be saved on this device.";
+ if(note)note.textContent=code?"Share your personal code. Each friend counts once after their order is paid and delivered.":"Your personal code is being prepared. You do not need to place an order to get one.";
  if(code)kxRefreshReferralProgress(code);
+}
+async function kxEnsureVisitorReferralCode(){
+ let visitorId="";
+ try{
+  visitorId=localStorage.getItem(KX_REFERRAL_VISITOR_KEY)||"";
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(visitorId)){
+   visitorId=crypto.randomUUID();
+   localStorage.setItem(KX_REFERRAL_VISITOR_KEY,visitorId);
+  }
+ }catch(_){return}
+ try{
+  const response=await fetch(SUPABASE_URL+"/functions/v1/create-manual-transfer-order?visitor_id="+encodeURIComponent(visitorId),{
+   method:"GET",headers:{"apikey":SUPABASE_PUBLISHABLE_KEY}
+  });
+  const data=await response.json();
+  if(!response.ok||!data.success||!data.referral_code)throw new Error(data.error||"Could not create referral code");
+  localStorage.setItem(KX_CUSTOMER_REFERRAL_KEY,String(data.referral_code).toUpperCase());
+  kxRenderCustomerReferralHub();
+ }catch(error){
+  const note=get("kx-referral-hub-note");
+  if(note)note.textContent="We couldn't create your code just now. Please refresh the page and try again.";
+  console.warn("KENNIX visitor referral code unavailable:",error);
+ }
 }
 function kxInitCustomerReferralHub(){
  kxRememberIncomingReferral();
  kxRenderCustomerReferralHub();
+ kxEnsureVisitorReferralCode();
  get("kx-copy-customer-referral")?.addEventListener("click",async()=>{
   let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
   if(!code)return;
