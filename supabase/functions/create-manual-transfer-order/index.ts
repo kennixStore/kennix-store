@@ -34,7 +34,20 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(url, serviceKey);
     if (req.method === "GET") {
-      const code = new URL(req.url).searchParams.get("referral_code")?.trim().toUpperCase() || "";
+      const params = new URL(req.url).searchParams;
+      const visitorId = params.get("visitor_id")?.trim() || "";
+      if (visitorId) {
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(visitorId)) {
+          return reply({ error: "Invalid visitor identifier." }, 400);
+        }
+        const { data: visitorCode, error: visitorCodeError } = await supabase.rpc(
+          "kennix_get_or_create_visitor_referral",
+          { p_visitor_id: visitorId }
+        );
+        if (visitorCodeError) throw visitorCodeError;
+        return reply({ success: true, referral_code: visitorCode });
+      }
+      const code = params.get("referral_code")?.trim().toUpperCase() || "";
       if (!/^[A-Z0-9]{6,40}$/.test(code)) return reply({ error: "Enter a valid referral code." }, 400);
       const { data: referral, error: referralError } = await supabase
         .from("kennix_referral_codes").select("code").eq("code", code).eq("is_active", true).maybeSingle();
@@ -245,16 +258,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    let customerReferralCode: string | null = null;
-    const { data: personalCode, error: personalCodeError } = await supabase.rpc(
-      "kennix_get_or_create_customer_referral",
-      { p_phone_key: phone, p_referrer_name: customer.name.trim().slice(0, 120) }
-    );
-    if (personalCodeError) {
-      console.error("Customer referral code creation failed:", personalCodeError);
-    } else if (typeof personalCode === "string") {
-      customerReferralCode = personalCode;
-    }
+    // Personal referral codes are issued on the first website visit, not at checkout.
+    const customerReferralCode: string | null = null;
 
     return reply({
       success: true,
