@@ -185,7 +185,7 @@ Warranty: 6 months"></textarea>
 <label for="referralAdminCode">Referral code</label><input id="referralAdminCode" maxlength="40" required placeholder="KENNYFRIEND">
 <label for="referralAdminName">Referrer's name</label><input id="referralAdminName" maxlength="120" placeholder="Name">
 <label for="referralAdminPhone">Referrer's phone</label><input id="referralAdminPhone" maxlength="30" placeholder="Phone number">
-<label for="referralAdminReward">Reward amount (₦)</label><input id="referralAdminReward" type="number" min="0" step="0.01" value="500" required>
+<label for="referralAdminReward">Reward amount (₦)</label><input id="referralAdminReward" type="number" min="0" step="0.01" value="300" required>
 <button type="submit" id="saveKennixReferral">Create inactive referral code</button><p id="kennixReferralMessage" class="small" aria-live="polite"></p>
 </form>
 <h3>Existing referral codes</h3><button type="button" id="refreshKennixReferrals">Refresh referral codes</button><div id="kennixReferralList">Loading...</div>
@@ -914,7 +914,7 @@ async function loadKennixCoupons(){
   const toggle=document.createElement("button");toggle.type="button";toggle.textContent=row.is_active?"Deactivate":"Activate";
   toggle.onclick=async()=>{toggle.disabled=true;const {error}=await db.from("kennix_coupons").update({is_active:!row.is_active}).eq("id",row.id);if(error)alert(error.message);await loadKennixCoupons()};
   const del=document.createElement("button");del.type="button";del.className="deleteBtn";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete coupon "+row.code+"?"))return;const {error}=await db.from("kennix_coupons").delete().eq("id",row.id);if(error)alert(error.message);await loadKennixCoupons()};
-  item.append(title,meta,toggle,del);box.append(item);
+  item.append(title,meta,copy,toggle,del);box.append(item);
  });
 }
 async function loadKennixReferrals(){
@@ -925,7 +925,8 @@ async function loadKennixReferrals(){
  data.forEach(row=>{
   const item=document.createElement("div");item.className="inventory-row";
   const title=document.createElement("strong");title.textContent=row.code+" — "+(row.referrer_name||"Referrer");
-  const meta=document.createElement("span");meta.className="inventory-meta";meta.textContent=(row.is_active?"Active":"Inactive")+" · Reward ₦"+Number(row.reward_amount).toLocaleString("en-NG")+" · "+(row.referrer_phone||"No phone");
+  const meta=document.createElement("span");meta.className="inventory-meta";meta.textContent=(row.is_active?"Active":"Inactive")+" · Reward ₦"+Number(row.reward_amount).toLocaleString("en-NG")+" per successful delivered referral · "+(row.referrer_phone||"No phone");
+  const copy=document.createElement("button");copy.type="button";copy.textContent="Copy referral code";copy.onclick=async()=>{try{await navigator.clipboard.writeText(row.code);copy.textContent="Copied!";setTimeout(()=>copy.textContent="Copy referral code",1600)}catch(_){prompt("Copy this referral code:",row.code)}};
   const toggle=document.createElement("button");toggle.type="button";toggle.textContent=row.is_active?"Deactivate":"Activate";
   toggle.onclick=async()=>{toggle.disabled=true;const {error}=await db.from("kennix_referral_codes").update({is_active:!row.is_active}).eq("id",row.id);if(error)alert(error.message);await loadKennixReferrals()};
   const del=document.createElement("button");del.type="button";del.className="deleteBtn";del.textContent="Delete";del.onclick=async()=>{if(!confirm("Delete referral code "+row.code+"?"))return;const {error}=await db.from("kennix_referral_codes").delete().eq("id",row.id);if(error)alert(error.message);await loadKennixReferrals()};
@@ -957,7 +958,7 @@ document.getElementById("kennixCouponForm")?.addEventListener("submit",async e=>
 document.getElementById("kennixReferralForm")?.addEventListener("submit",async e=>{
  e.preventDefault();const f=e.currentTarget,b=document.getElementById("saveKennixReferral"),m=document.getElementById("kennixReferralMessage");b.disabled=true;b.textContent="Saving...";
  const value={code:f.elements.namedItem("referralAdminCode").value.trim().toUpperCase(),referrer_name:f.elements.namedItem("referralAdminName").value.trim()||null,referrer_phone:f.elements.namedItem("referralAdminPhone").value.trim()||null,reward_amount:Number(f.elements.namedItem("referralAdminReward").value),is_active:false};
- const {error}=await db.from("kennix_referral_codes").insert(value);b.disabled=false;b.textContent="Create inactive referral code";m.textContent=error?"Could not create referral code: "+error.message:"Referral code created inactive. Activate it when ready.";if(!error){f.reset();f.elements.namedItem("referralAdminReward").value="0";await loadKennixReferrals()}
+ const {error}=await db.from("kennix_referral_codes").insert(value);b.disabled=false;b.textContent="Create inactive referral code";m.textContent=error?"Could not create referral code: "+error.message:"Referral code created inactive. Each successful delivered referral earns ₦300; five qualifying referrals total ₦1,500. Activate it when ready.";if(!error){f.reset();f.elements.namedItem("referralAdminReward").value="300";await loadKennixReferrals()}
 });
 document.getElementById("refreshKennixCoupons")?.addEventListener("click",loadKennixCoupons);
 document.getElementById("refreshKennixReferrals")?.addEventListener("click",async()=>{await loadKennixReferrals();await loadKennixReferralRewards()});
