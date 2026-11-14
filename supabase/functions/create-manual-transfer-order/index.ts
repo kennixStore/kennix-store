@@ -172,6 +172,11 @@ Deno.serve(async (req) => {
       const referrerPhone = referral.referrer_phone ? normalizePhone(String(referral.referrer_phone)) : null;
       if (referrerPhone && referrerPhone === phone) return reply({ error: "You cannot use your own referral code." }, 400);
       referralRecord = referral;
+      const { data: priorReferral, error: priorReferralError } = await supabase
+        .from("kennix_referral_rewards").select("id")
+        .eq("referral_code", referralCode).eq("referred_phone", phone).maybeSingle();
+      if (priorReferralError) throw priorReferralError;
+      if (priorReferral) return reply({ error: "This phone number has already used this referral code. Each friend can count only once." }, 409);
     }
 
     // Allocate both discounts proportionally across eligible order lines.
@@ -233,7 +238,11 @@ Deno.serve(async (req) => {
         referral_code: referralCode, order_id: order.id, referred_phone: phone,
         reward_amount: Number(referralRecord.reward_amount), status: "pending"
       });
-      if (rewardError) console.error("Referral reward record failed:", rewardError);
+      if (rewardError) {
+        console.error("Referral reward record failed:", rewardError);
+        await supabase.from("orders").delete().eq("id", order.id);
+        return reply({ error: "We could not safely record this referral. Please check the code and try again." }, 409);
+      }
     }
 
     let customerReferralCode: string | null = null;
