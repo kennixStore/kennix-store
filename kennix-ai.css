@@ -68,3 +68,8 @@
  .ka-welcome{padding:20px 12px}
 }
 @media(prefers-reduced-motion:reduce){.ka-bubble-field i,#kennix-ai-launcher{animation:none}}
+
+/* Drag handle behavior for the movable KENNIX AI launcher. */
+#kennix-ai-launcher{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#kennix-ai-launcher:active{cursor:grabbing}
+@media(prefers-reduced-motion:reduce){#kennix-ai-launcher{animation:none}}
