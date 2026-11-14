@@ -205,11 +205,6 @@ Deno.serve(async (req) => {
       return reply({ error: "We could not save your order items. Please try again." }, 500);
     }
 
-    if (couponRecord) {
-      const { error: couponUseError } = await supabase.from("kennix_coupons")
-        .update({ usage_count: Number(couponRecord.usage_count || 0) + 1 }).eq("id", couponRecord.id);
-      if (couponUseError) console.error("Coupon usage counter update failed:", couponUseError);
-    }
     if (referralRecord && Number(referralRecord.reward_amount) > 0) {
       const { error: rewardError } = await supabase.from("kennix_referral_rewards").insert({
         referral_code: referralCode, order_id: order.id,
