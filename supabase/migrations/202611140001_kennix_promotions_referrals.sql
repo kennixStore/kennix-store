@@ -50,20 +50,20 @@ ALTER TABLE public.kennix_referral_rewards ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "KENNIX admins manage coupons" ON public.kennix_coupons;
 CREATE POLICY "KENNIX admins manage coupons"
 ON public.kennix_coupons FOR ALL TO authenticated
-USING ((auth.jwt() ->> 'email') IN ('kennix2027@gmail.com','okalu4124@gmail.com'))
-WITH CHECK ((auth.jwt() ->> 'email') IN ('kennix2027@gmail.com','okalu4124@gmail.com'));
+USING (public.is_kennix_admin())
+WITH CHECK (public.is_kennix_admin());
 
 DROP POLICY IF EXISTS "KENNIX admins manage referral codes" ON public.kennix_referral_codes;
 CREATE POLICY "KENNIX admins manage referral codes"
 ON public.kennix_referral_codes FOR ALL TO authenticated
-USING ((auth.jwt() ->> 'email') IN ('kennix2027@gmail.com','okalu4124@gmail.com'))
-WITH CHECK ((auth.jwt() ->> 'email') IN ('kennix2027@gmail.com','okalu4124@gmail.com'));
+USING (public.is_kennix_admin())
+WITH CHECK (public.is_kennix_admin());
 
 DROP POLICY IF EXISTS "KENNIX admins manage referral rewards" ON public.kennix_referral_rewards;
 CREATE POLICY "KENNIX admins manage referral rewards"
 ON public.kennix_referral_rewards FOR ALL TO authenticated
-USING ((auth.jwt() ->> 'email') IN ('kennix2027@gmail.com','okalu4124@gmail.com'))
-WITH CHECK ((auth.jwt() ->> 'email') IN ('kennix2027@gmail.com','okalu4124@gmail.com'));
+USING (public.is_kennix_admin())
+WITH CHECK (public.is_kennix_admin());
 
 REVOKE ALL ON public.kennix_coupons FROM anon;
 REVOKE ALL ON public.kennix_referral_codes FROM anon;
