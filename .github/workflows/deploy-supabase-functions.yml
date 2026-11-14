@@ -2,6 +2,10 @@ name: Deploy KENNIX Supabase Functions
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'supabase/functions/create-manual-transfer-order/**'
+      - '.github/workflows/deploy-supabase-functions.yml'
 
 jobs:
   deploy:
