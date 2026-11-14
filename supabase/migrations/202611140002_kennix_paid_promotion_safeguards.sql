@@ -14,7 +14,12 @@ BEGIN
     IF NEW.coupon_code IS NOT NULL AND NEW.coupon_code <> '' THEN
       UPDATE public.kennix_coupons
       SET usage_count = usage_count + 1
-      WHERE code = NEW.coupon_code;
+      WHERE code = NEW.coupon_code
+        AND (usage_limit IS NULL OR usage_count < usage_limit);
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'This coupon has reached its redemption limit. Payment approval was stopped.';
+      END IF;
     END IF;
 
     UPDATE public.kennix_referral_rewards
