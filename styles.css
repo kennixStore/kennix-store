@@ -409,3 +409,26 @@ body{font-family:var(--sans)}
 @keyframes kennixCardHover{0%,100%{translate:0 0}50%{translate:0 -7px}}
 @media(prefers-reduced-motion:reduce){.coupon-ribbon-track,.hero-float-dot,.art-card{animation:none!important}}
 @media(max-width:600px){.coupon-ribbon{height:32px}.coupon-ribbon-track span{font-size:9px}}
+
+/* KENNIX customer Invite & Earn hub */
+.kx-referral-hub{display:grid;grid-template-columns:1fr minmax(280px,.9fr);gap:28px;align-items:center;padding:clamp(30px,6vw,70px) clamp(18px,5vw,70px);background:linear-gradient(120deg,#f8f6fc,#edf3fb);border-top:1px solid #e8e1f2;border-bottom:1px solid #e3eaf3}
+.kx-referral-copy .eyebrow{color:#7554a4;font-size:10px;font-weight:800;letter-spacing:1.6px}
+.kx-referral-copy h2{margin:8px 0 12px;color:#242033;font-size:clamp(27px,4vw,43px);line-height:1.08;letter-spacing:-1.2px}
+.kx-referral-copy h2 em{font-style:normal;color:#6843a5}
+.kx-referral-copy>p:last-child{max-width:440px;color:#656174;line-height:1.7;font-size:13px}
+.kx-referral-card{padding:22px;border:1px solid #e2d8f0;border-radius:18px;background:#fff;box-shadow:0 12px 35px #35205b12}
+.kx-referral-card>small{display:block;color:#7a6a91;font-size:9px;font-weight:800;letter-spacing:1.2px}
+.kx-referral-card>strong{display:block;margin:9px 0 14px;color:#4e3478;font-size:clamp(20px,4vw,27px);letter-spacing:1.5px;overflow-wrap:anywhere}
+.kx-referral-actions{display:flex;flex-wrap:wrap;gap:9px}
+.kx-referral-actions button,.kx-order-referral button{border:0;border-radius:9px;padding:11px 15px;background:#6843a5;color:#fff;font-size:10px;font-weight:800;letter-spacing:.5px;cursor:pointer}
+.kx-referral-actions button+button,.kx-order-referral button+button{background:#315f9d}
+.kx-referral-actions button:disabled{opacity:.4;cursor:not-allowed}
+.kx-referral-card p{color:#777184;font-size:11px;line-height:1.55;margin:12px 0 0}
+.kx-referral-card #kx-referral-progress{padding-top:10px;border-top:1px solid #eee9f4;color:#543a7b;font-weight:700}
+.kx-order-referral{margin:12px 0 20px;padding:17px;border:1px solid #e4d9f3;border-radius:14px;background:#f8f5fc}
+.kx-order-referral .eyebrow{margin:0;color:#715497;font-size:9px;font-weight:800;letter-spacing:1px}
+.kx-order-referral>strong{display:block;margin:8px 0;color:#56377e;font-size:25px;letter-spacing:1.5px}
+.kx-order-referral p:not(.eyebrow){font-size:12px;line-height:1.55}
+.kx-order-referral>div{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:700px){.kx-referral-hub{grid-template-columns:1fr;gap:15px;padding:30px 18px}.kx-referral-card{padding:17px}}
+@media(prefers-reduced-motion:reduce){.kx-referral-hub *{scroll-behavior:auto}}
