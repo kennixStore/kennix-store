@@ -534,9 +534,21 @@ async function kxShareCustomerReferral(code){
  const url=kxReferralShareUrl(code);
  const message="Shop with KENNIX and use my referral code "+code+". Invite 5 friends to shop and earn ₦1,500! "+url;
  if(navigator.share){
-  try{await navigator.share({title:"KENNIX Invite & Earn",text:message,url});return}catch(error){if(error.name==="AbortError")return}
+  try{await navigator.share({title:"KENNIX Invite & Earn",text:message,url});return}
+  catch(error){if(error?.name==="AbortError")return;console.warn("Native share unavailable; opening WhatsApp.",error)}
  }
- window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener");
+ const whatsappUrl="https://wa.me/?text="+encodeURIComponent(message);
+ location.href=whatsappUrl;
+}
+async function kxCopyReferralText(text){
+ try{
+  if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);return true}
+ }catch(error){console.warn("Clipboard API unavailable; using compatible copy fallback.",error)}
+ const area=document.createElement("textarea");
+ area.value=text;area.setAttribute("readonly","");area.style.position="fixed";area.style.opacity="0";area.style.left="-9999px";
+ document.body.appendChild(area);area.focus();area.select();area.setSelectionRange(0,area.value.length);
+ let copied=false;try{copied=document.execCommand("copy")}catch(error){console.warn("Legacy clipboard copy failed.",error)}
+ area.remove();return copied;
 }
 async function kxRefreshReferralProgress(code){
  const box=get("kx-referral-progress");if(!box||!code)return;
@@ -612,13 +624,15 @@ function kxInitCustomerReferralHub(){
  kxEnsureVisitorReferralCode();
  get("kx-copy-customer-referral")?.addEventListener("click",async()=>{
   let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
-  if(!code)return;
-  try{await navigator.clipboard.writeText(code);kxToast("Your KENNIX referral code was copied.");}
-  catch{prompt("Copy your KENNIX referral code:",code)}
+  if(!code){kxToast("Your referral code is still being created. Try again shortly.");return}
+  const copied=await kxCopyReferralText(code);
+  if(copied){kxToast("Referral code copied: "+code);const note=get("kx-referral-hub-note");if(note)note.textContent="Copied! Send your code to friends."}
+  else{const note=get("kx-referral-hub-note");if(note)note.textContent="Select and copy this code manually: "+code;const value=get("kx-customer-referral-code");if(value){const range=document.createRange();range.selectNodeContents(value);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range)}}
  });
  get("kx-share-customer-referral")?.addEventListener("click",async()=>{
   let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
-  if(code)await kxShareCustomerReferral(code);
+  if(!code){kxToast("Your referral code is still being created. Try again shortly.");return}
+  await kxShareCustomerReferral(code);
  });
 }
 
