@@ -387,3 +387,25 @@ body{font-family:var(--sans)}
  .kx-compare-panel{padding:13px}
  .kx-compare-panel th,.kx-compare-panel td{padding:8px;font-size:10px}
 }
+
+/* KENNIX second scrolling offer strip and light homepage motion. */
+.coupon-ribbon{height:34px;overflow:hidden;display:flex;align-items:center;background:#f0eafa;border-bottom:1px solid #e2d7f2;color:#563b7d}
+.coupon-ribbon-track{display:flex;align-items:center;gap:54px;width:max-content;white-space:nowrap;animation:kennixCouponTicker 27s linear infinite}
+.coupon-ribbon-track span{font-size:10px;font-weight:800;letter-spacing:.75px;padding:0 14px}
+@keyframes kennixCouponTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.announcement-item.referral{background:#4d3376;color:#fff}
+.announcement-item.discover{background:#24517b;color:#fff}
+.announcement-item.referral:before{content:"♡";margin-right:10px;color:#f2d27b}
+.announcement-item.discover:before{content:"✧";margin-right:10px;color:#c9e4ff}
+.hero-float-dot{position:absolute;z-index:2;display:grid;place-items:center;border:1px solid #d4af3777;border-radius:50%;color:#e9d28b;background:#ffffff12;box-shadow:0 8px 24px #00180f35;backdrop-filter:blur(5px);animation:kennixHeroFloat 4.8s ease-in-out infinite}
+.dot-one{width:42px;height:42px;left:9%;top:13%;font-size:19px}
+.dot-two{width:27px;height:27px;right:13%;top:20%;font-size:11px;animation-delay:-1.2s}
+.dot-three{width:35px;height:35px;left:13%;bottom:18%;font-size:19px;animation-delay:-2.1s}
+.dot-four{width:15px;height:15px;right:12%;bottom:18%;font-size:7px;animation-delay:-3s}
+.dot-five{width:22px;height:22px;right:4%;top:53%;font-size:11px;animation-delay:-.7s}
+@keyframes kennixHeroFloat{0%,100%{transform:translate3d(0,0,0) rotate(0)}50%{transform:translate3d(5px,-13px,0) rotate(8deg)}}
+.art-card{animation:kennixCardHover 6s ease-in-out infinite}
+.art-card.front{animation-delay:-2.8s}
+@keyframes kennixCardHover{0%,100%{translate:0 0}50%{translate:0 -7px}}
+@media(prefers-reduced-motion:reduce){.coupon-ribbon-track,.hero-float-dot,.art-card{animation:none!important}}
+@media(max-width:600px){.coupon-ribbon{height:32px}.coupon-ribbon-track span{font-size:9px}}
