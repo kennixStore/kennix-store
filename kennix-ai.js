@@ -137,6 +137,51 @@ function readBinaryFile(file){
 function isTextFile(file){
   return /\.(txt|csv)$/i.test(file.name)||file.type==="text/plain"||file.type==="text/csv";
 }
+
+// KENNIX AI launcher can be repositioned by the visitor. Position is saved on this device.
+let launcherDragged=false;
+try{
+ const saved=JSON.parse(localStorage.getItem("kennix-ai-launcher-position")||"null");
+ if(saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.y)){
+  launcher.style.left=Math.max(8,Math.min(innerWidth-80,saved.x))+"px";
+  launcher.style.top=Math.max(8,Math.min(innerHeight-55,saved.y))+"px";
+  launcher.style.right="auto";launcher.style.bottom="auto";
+ }
+}catch(_){}
+launcher.addEventListener("pointerdown",event=>{
+ if(event.button!==0)return;
+ const rect=launcher.getBoundingClientRect();
+ const startX=event.clientX,startY=event.clientY;
+ const offsetX=startX-rect.left,offsetY=startY-rect.top;
+ let moved=false;
+ launcher.setPointerCapture(event.pointerId);
+ const move=e=>{
+  const dx=e.clientX-startX,dy=e.clientY-startY;
+  if(Math.abs(dx)+Math.abs(dy)>7)moved=true;
+  if(!moved)return;
+  const x=Math.max(8,Math.min(innerWidth-rect.width-8,e.clientX-offsetX));
+  const y=Math.max(8,Math.min(innerHeight-rect.height-8,e.clientY-offsetY));
+  launcher.style.left=x+"px";launcher.style.top=y+"px";
+  launcher.style.right="auto";launcher.style.bottom="auto";
+ };
+ const finish=()=>{
+  launcher.removeEventListener("pointermove",move);
+  launcher.removeEventListener("pointerup",finish);
+  launcher.removeEventListener("pointercancel",finish);
+  if(moved){
+   launcherDragged=true;
+   try{localStorage.setItem("kennix-ai-launcher-position",JSON.stringify({x:parseFloat(launcher.style.left),y:parseFloat(launcher.style.top)}));}catch(_){}
+   setTimeout(()=>{launcherDragged=false;},0);
+  }
+ };
+ launcher.addEventListener("pointermove",move);
+ launcher.addEventListener("pointerup",finish);
+ launcher.addEventListener("pointercancel",finish);
+});
+launcher.addEventListener("click",event=>{
+ if(launcherDragged){event.preventDefault();event.stopImmediatePropagation();}
+},true);
+
 launcher.addEventListener("click",()=>{panel.classList.add("open");input.focus();});
 if(mic){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(SR){const recognition=new SR();recognition.lang="en-NG";recognition.interimResults=false;recognition.maxAlternatives=1;recognition.onstart=()=>{mic.textContent="●";status.textContent="Listening… speak now.";};recognition.onresult=e=>{const spoken=e.results&&e.results[0]&&e.results[0][0]?e.results[0][0].transcript:"";if(spoken)input.value=(input.value?input.value+" ":"")+spoken;input.focus();};recognition.onerror=()=>{status.textContent="Microphone issue. Check browser permission.";};recognition.onend=()=>{mic.textContent="🎙";};mic.addEventListener("click",()=>{try{recognition.start();}catch(_){status.textContent="Microphone is already listening.";}});}else{mic.addEventListener("click",()=>{status.textContent="Voice input is not supported by this browser. Try Chrome.";});}}
 panel.querySelector(".ka-close").addEventListener("click",()=>{
