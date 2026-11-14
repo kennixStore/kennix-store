@@ -199,6 +199,7 @@ function openCheckoutForm(){
  <p class="checkout-error" id="checkout-error" role="alert"></p>
  </form>`;
  panel.querySelector("#checkout-back").addEventListener("click",()=>{panel.hidden=true;panel.replaceChildren();checkoutButton.hidden=false});
+ const referredBy=new URLSearchParams(location.search).get("ref")||localStorage.getItem("kennix-referred-by-v1")||"";const referralInput=panel.querySelector("#kennix-referral-code");if(referralInput&&referredBy)referralInput.value=referredBy.toUpperCase();
  panel.querySelector("#kennix-checkout-form").addEventListener("submit",async e=>{
   e.preventDefault();
   const form=e.currentTarget,submit=panel.querySelector("#transfer-submit"),errorBox=panel.querySelector("#checkout-error");
@@ -227,8 +228,12 @@ function openCheckoutForm(){
    if(!data?.success||!data.order_reference||!data.payment)throw new Error(data?.error||"Your order could not be created. Please try again.");
    const amount=money(data.amount);
    const orderReference=String(data.order_reference);
+   const personalReferralCode=String(data.customer_referral_code||"").toUpperCase();
+   if(personalReferralCode){try{localStorage.setItem(KX_CUSTOMER_REFERRAL_KEY,personalReferralCode);localStorage.removeItem(KX_REFERRED_BY_KEY)}catch(_){}}
+ 
    panel.innerHTML=`<section class="checkout-form transfer-instructions">
     <h3>Order created</h3>
+    ${data.customer_referral_code?`<div class="kx-order-referral"><p class="eyebrow">YOUR PERSONAL KENNIX REFERRAL CODE</p><strong id="kx-order-referral-code">${data.customer_referral_code}</strong><p>Invite 5 friends to shop. Earn ₦1,500 when all 5 orders are paid and delivered.</p><div><button type="button" id="kx-copy-order-referral">COPY MY CODE</button><button type="button" id="kx-share-order-referral">SHARE WITH FRIENDS</button></div></div>`:""}
     <p>Your order reference:</p><div class="order-reference-row"><h2 id="created-order-reference">${orderReference}</h2><button type="button" id="copy-order-reference">COPY KNX CODE</button></div>
     <p class="order-reference-notice"><strong>Important:</strong> Copy your KNX order code and keep it somewhere safe. You will need this code to track your order and when contacting KENNIX about your purchase.</p>
     <p>Subtotal: <strong>${money(data.subtotal)}</strong></p>
@@ -260,7 +265,13 @@ function openCheckoutForm(){
     try{await navigator.clipboard.writeText(orderReference);toast("KNX code copied.");}
     catch{toast("Please copy the KNX code manually.");}
    });
-   panel.querySelector("#copy-account-number").addEventListener("click",async()=>{
+   
+   if(personalReferralCode){
+    panel.querySelector("#kx-copy-order-referral")?.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(personalReferralCode);toast("Referral code copied.");}catch{prompt("Copy your referral code:",personalReferralCode)}});
+    panel.querySelector("#kx-share-order-referral")?.addEventListener("click",()=>kxShareCustomerReferral(personalReferralCode));
+    kxRenderCustomerReferralHub();
+   }
+ panel.querySelector("#copy-account-number").addEventListener("click",async()=>{
     try{await navigator.clipboard.writeText(String(data.payment.account_number));toast("Account number copied.");}
     catch{toast("Please copy the account number manually.");}
    });
@@ -500,8 +511,72 @@ renderCart=function(...args){
  }
  return result;
 };
+
+/* KENNIX automatic customer referral code and invite hub.
+   A code is issued server-side from the customer's normalized phone at checkout.
+   The same customer gets the same code on later orders/devices. */
+const KX_CUSTOMER_REFERRAL_KEY="kennix-customer-referral-code-v1";
+const KX_REFERRED_BY_KEY="kennix-referred-by-v1";
+function kxRememberIncomingReferral(){
+ try{
+  const incoming=new URLSearchParams(location.search).get("ref");
+  if(incoming&&/^[A-Z0-9]{6,40}$/i.test(incoming)){
+   localStorage.setItem(KX_REFERRED_BY_KEY,incoming.toUpperCase());
+  }
+ }catch(_){}
+}
+function kxReferralShareUrl(code){
+ const url=new URL(location.href);url.searchParams.set("ref",code);url.hash="";
+ return url.toString();
+}
+async function kxShareCustomerReferral(code){
+ const url=kxReferralShareUrl(code);
+ const message="Shop with KENNIX and use my referral code "+code+". Invite 5 friends to shop and earn ₦1,500! "+url;
+ if(navigator.share){
+  try{await navigator.share({title:"KENNIX Invite & Earn",text:message,url});return}catch(error){if(error.name==="AbortError")return}
+ }
+ window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener");
+}
+async function kxRefreshReferralProgress(code){
+ const box=get("kx-referral-progress");if(!box||!code)return;
+ try{
+  const response=await fetch(SUPABASE_URL+"/functions/v1/create-manual-transfer-order?referral_code="+encodeURIComponent(code),{
+   method:"GET",headers:{"apikey":SUPABASE_PUBLISHABLE_KEY}
+  });
+  const data=await response.json();
+  if(!response.ok||!data.success)throw new Error(data.error||"Could not load referral progress");
+  box.textContent=data.successful_referrals+" of 5 successful referrals · ₦"+Number(data.earned_amount||0).toLocaleString("en-NG")+" earned · "+data.pending_referrals+" awaiting delivery";
+ }catch(_){box.textContent="Your referral code is saved. Progress will refresh when you place or track your next order."}
+}
+function kxRenderCustomerReferralHub(){
+ const section=get("kennix-referral-hub");if(!section)return;
+ let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
+ const value=get("kx-customer-referral-code"),note=get("kx-referral-hub-note");
+ const copy=get("kx-copy-customer-referral"),share=get("kx-share-customer-referral");
+ if(value)value.textContent=code||"Your code appears after your first order";
+ if(copy)copy.disabled=!code;
+ if(share)share.disabled=!code;
+ if(note)note.textContent=code?"Share your personal code. Each new friend counts once, after their order is paid and delivered.":"Place your first order to receive your personal KENNIX referral code. It will be saved on this device.";
+ if(code)kxRefreshReferralProgress(code);
+}
+function kxInitCustomerReferralHub(){
+ kxRememberIncomingReferral();
+ kxRenderCustomerReferralHub();
+ get("kx-copy-customer-referral")?.addEventListener("click",async()=>{
+  let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
+  if(!code)return;
+  try{await navigator.clipboard.writeText(code);kxToast("Your KENNIX referral code was copied.");}
+  catch{prompt("Copy your KENNIX referral code:",code)}
+ });
+ get("kx-share-customer-referral")?.addEventListener("click",async()=>{
+  let code="";try{code=localStorage.getItem(KX_CUSTOMER_REFERRAL_KEY)||""}catch(_){}
+  if(code)await kxShareCustomerReferral(code);
+ });
+}
+
 function kxInitSecondaryFeatures(){
  kxEnsureSecondaryUI();kxRenderSecondaryShelves();kxUpdateCompareBar();
+ kxInitCustomerReferralHub();
  get("kx-invite-button")?.addEventListener("click",kxShareStore);
  if(kxCartRestored)kxToast("Your saved KENNIX bag is ready.");
  document.addEventListener("keydown",e=>{if(e.key==="Escape")get("kx-compare-modal")?.remove()});
