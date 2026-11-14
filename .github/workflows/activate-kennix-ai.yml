@@ -32,6 +32,17 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Missing GitHub secret: SUPABASE_ACCESS_TOKEN" && exit 1)
           test -n "$SUPABASE_PUBLISHABLE_KEY" || (echo "Missing GitHub secret: SUPABASE_PUBLISHABLE_KEY" && exit 1)
 
+      - name: Compare website Supabase key with configured project key
+        shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          website_key=$(grep -oE 'sb_publishable_[A-Za-z0-9_-]+' kennix-ai.js | head -n 1 || true)
+          if [ -n "$website_key" ] && [ "$website_key" = "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "Website Supabase key: MATCHES configured project key"
+          else
+            echo "Website Supabase key: MISMATCH or missing"
+          fi
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
