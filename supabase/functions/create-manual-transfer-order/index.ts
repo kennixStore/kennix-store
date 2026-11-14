@@ -109,17 +109,57 @@ Deno.serve(async (req) => {
     const discountAmount = isFirstPurchase
       ? Math.round(eligibleSubtotal * 0.13 * 100) / 100
       : 0;
-    const finalTotal = Math.round((total - discountAmount) * 100) / 100;
+    let finalTotal = Math.round((total - discountAmount) * 100) / 100;
     if (finalTotal <= 0) return reply({ error: "Invalid discounted order total." }, 400);
 
-    // Allocate the first-order discount proportionally across eligible order lines.
-    let discountRemaining = discountAmount;
+    const couponCode = typeof body?.coupon_code === "string" ? body.coupon_code.trim().toUpperCase() : "";
+    let couponDiscount = 0;
+    let couponRecord: any = null;
+    if (couponCode) {
+      const { data: coupon, error: couponError } = await supabase
+        .from("kennix_coupons").select("*").eq("code", couponCode).eq("is_active", true).maybeSingle();
+      if (couponError) throw couponError;
+      const now = Date.now();
+      if (!coupon || (coupon.starts_at && new Date(coupon.starts_at).getTime() > now) ||
+          (coupon.ends_at && new Date(coupon.ends_at).getTime() < now) ||
+          (coupon.usage_limit !== null && Number(coupon.usage_count) >= Number(coupon.usage_limit))) {
+        return reply({ error: "This coupon code is invalid, expired or no longer available." }, 400);
+      }
+      if (total < Number(coupon.minimum_order || 0)) {
+        return reply({ error: `This coupon requires a minimum order of ${Number(coupon.minimum_order).toLocaleString("en-NG")}.` }, 400);
+      }
+      couponRecord = coupon;
+      const couponBase = Math.max(0, finalTotal);
+      couponDiscount = coupon.discount_type === "percent"
+        ? Math.round(couponBase * Number(coupon.discount_value) / 100 * 100) / 100
+        : Math.min(couponBase, Number(coupon.discount_value));
+      if (coupon.maximum_discount !== null) couponDiscount = Math.min(couponDiscount, Number(coupon.maximum_discount));
+      couponDiscount = Math.min(couponBase, Math.max(0, couponDiscount));
+      finalTotal = Math.round((finalTotal - couponDiscount) * 100) / 100;
+    }
+    if (finalTotal <= 0) return reply({ error: "The discounts make this order total invalid. Please contact KENNIX." }, 400);
+
+    const referralCode = typeof body?.referral_code === "string" ? body.referral_code.trim().toUpperCase() : "";
+    let referralRecord: any = null;
+    if (referralCode) {
+      const { data: referral, error: referralError } = await supabase
+        .from("kennix_referral_codes").select("*").eq("code", referralCode).eq("is_active", true).maybeSingle();
+      if (referralError) throw referralError;
+      if (!referral) return reply({ error: "This referral code is invalid or inactive." }, 400);
+      const referrerPhone = referral.referrer_phone ? normalizePhone(String(referral.referrer_phone)) : null;
+      if (referrerPhone && referrerPhone === phone) return reply({ error: "You cannot use your own referral code." }, 400);
+      referralRecord = referral;
+    }
+
+    // Allocate both discounts proportionally across eligible order lines.
+    let discountRemaining = discountAmount + couponDiscount;
     const eligibleLines = cleanItems.filter((item) => item.promo_eligible);
     for (let index = 0; index < eligibleLines.length; index++) {
       const item = eligibleLines[index];
+      const combinedDiscount = discountAmount + couponDiscount;
       const lineDiscount = index === eligibleLines.length - 1
         ? discountRemaining
-        : Math.round((discountAmount * item.line_total / eligibleSubtotal) * 100) / 100;
+        : Math.round((combinedDiscount * item.line_total / eligibleSubtotal) * 100) / 100;
       discountRemaining = Math.round((discountRemaining - lineDiscount) * 100) / 100;
       item.line_total = Math.round((item.line_total - lineDiscount) * 100) / 100;
       item.unit_price = Math.round((item.line_total / item.quantity) * 100) / 100;
@@ -146,6 +186,9 @@ Deno.serve(async (req) => {
       payment_reference: reference,
       payment_status: "pending",
       payment_provider: "manual_transfer",
+      coupon_code: couponRecord ? couponCode : null,
+      referral_code: referralRecord ? referralCode : null,
+      coupon_discount: couponDiscount,
     }).select("id").single();
 
     if (orderError || !order) {
@@ -162,6 +205,19 @@ Deno.serve(async (req) => {
       return reply({ error: "We could not save your order items. Please try again." }, 500);
     }
 
+    if (couponRecord) {
+      const { error: couponUseError } = await supabase.from("kennix_coupons")
+        .update({ usage_count: Number(couponRecord.usage_count || 0) + 1 }).eq("id", couponRecord.id);
+      if (couponUseError) console.error("Coupon usage counter update failed:", couponUseError);
+    }
+    if (referralRecord && Number(referralRecord.reward_amount) > 0) {
+      const { error: rewardError } = await supabase.from("kennix_referral_rewards").insert({
+        referral_code: referralCode, order_id: order.id,
+        reward_amount: Number(referralRecord.reward_amount), status: "pending"
+      });
+      if (rewardError) console.error("Referral reward record failed:", rewardError);
+    }
+
     return reply({
       success: true,
       order_id: order.id,
@@ -169,6 +225,9 @@ Deno.serve(async (req) => {
       amount: finalTotal,
       subtotal: total,
       discount_amount: discountAmount,
+      coupon_discount: couponDiscount,
+      coupon_code: couponRecord ? couponCode : null,
+      referral_code: referralRecord ? referralCode : null,
       first_purchase_offer: isFirstPurchase,
       delivery_fee: 0,
       payment_status: "pending",
