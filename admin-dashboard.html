@@ -87,7 +87,7 @@ img{max-width:100%;height:100px;object-fit:cover;display:block}
 <button class="admin-tab" type="button" data-admin-tab="orders"><strong>📦 Orders</strong><span>View and update customer orders</span></button>
 <button class="admin-tab" type="button" data-admin-tab="upload"><strong>➕ Upload Products</strong><span>Add products to the store</span></button>
 <button class="admin-tab" type="button" data-admin-tab="products"><strong>🛍️ Products</strong><span>Edit or remove products</span></button>
-<button class="admin-tab" type="button" data-admin-tab="options"><strong>🎨 Colors & Sizes</strong><span>Add product options and stock</span></button>
+<button class="admin-tab" type="button" data-admin-tab="options"><strong>📋 Product Specs & Stock</strong><span>Manage product specifications and inventory</span></button>
 <button class="admin-tab" type="button" data-admin-tab="promotions"><strong>🎟️ Coupons & Referrals</strong><span>Manage discounts and referral rewards</span></button>
 <button class="admin-tab" type="button" data-admin-tab="reviews"><strong>⭐ Reviews</strong><span>Approve or remove customer reviews</span></button>
 <button class="admin-tab" type="button" data-admin-tab="guide"><strong>📘 Admin Guide</strong><span>Simple instructions for store tasks</span></button>
@@ -934,7 +934,7 @@ async function loadKennixReferrals(){
 }
 async function loadKennixReferralRewards(){
  const box=document.getElementById("kennixReferralRewards");if(!box)return;box.textContent="Loading...";
- const {data,error}=await db.from("kennix_referral_rewards").select("id,referral_code,order_id,reward_amount,status,created_at").order("created_at",{ascending:false}).limit(100);
+ const {data,error}=await db.from("kennix_referral_rewards").select("id,referral_code,order_id,reward_amount,status,created_at,orders(payment_status)").order("created_at",{ascending:false}).limit(100);
  if(error){box.textContent="Could not load rewards: "+error.message;return}
  box.replaceChildren();if(!data?.length){box.textContent="No referral rewards recorded yet.";return}
  data.forEach(row=>{
