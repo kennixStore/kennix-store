@@ -130,10 +130,10 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           body=$(mktemp)
-          status=$(curl -sS --max-time 90 -o "$body" -w "%{http_code}" \\
-            "https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/kennix-ai" \\
-            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \\
-            -H "Content-Type: application/json" \\
+          status=$(curl -sS --max-time 90 -o "$body" -w "%{http_code}" \
+            "https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/kennix-ai" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
             --data '{"messages":[{"role":"user","content":"Reply with exactly: KENNIX AI test successful."}]}')
           echo "Live response test HTTP status: $status"
           jq '{reply,provider,error,diagnostic}' "$body" 2>/dev/null || head -c 1200 "$body"
