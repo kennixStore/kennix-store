@@ -14,7 +14,7 @@ const categoryKey=v=>{v=String(v||"").trim().toLowerCase();return ["clothes","cl
 function message(text){const box=get("product-grid");if(!box)return;box.replaceChildren();const p=document.createElement("p");p.className="empty-products";p.textContent=text;box.append(p)}
 async function loadProducts(){try{const {data,error}=await getDb().from("products").select("*").eq("Is_active",true);if(error)throw error;products=data||[];try{const ids=products.map(p=>p.id);if(ids.length){const v=await getDb().from("product_variants").select("id,product_id,color,size,stock_quantity,price,compare_at_price,sku,is_active").in("product_id",ids).eq("is_active",true).gt("stock_quantity",0);if(v.error)throw v.error;productVariants=v.data||[]}}catch(variantError){console.warn("Variant inventory is unavailable; showing standard product listings.",variantError);productVariants=[]}renderProducts();renderHomeCollections();loadHomepageReviews()}catch(e){console.error(e);message("Products could not load. Please refresh and try again.")}}
 function renderProducts(){const box=get("product-grid");if(!box)return;box.replaceChildren();let list=products.filter(p=>(activeCategory==="All"||categoryKey(p.Category)===categoryKey(activeCategory))&&[p.Name,p.Category,p.Description].join(" ").toLowerCase().includes(searchText));if(sortMode==="low")list.sort((a,b)=>Number(a.Price)-Number(b.Price));else if(sortMode==="high")list.sort((a,b)=>Number(b.Price)-Number(a.Price));else if(activeCategory==="All")list.sort((a,b)=>(Date.parse(b.created_at||b.createdAt||"")||0)-(Date.parse(a.created_at||a.createdAt||"")||0));if(!list.length){message(products.length?"No products match your selection.":"No active products yet. Please check back soon.");return}
-list.forEach(p=>{const card=document.createElement("article");card.className="product-card";card.tabIndex=0;const art=document.createElement("div");art.className="product-art";if(p.Image_Url){const img=document.createElement("img");img.src=p.Image_Url;img.alt=p.Name||"KENNIX product";img.loading="lazy";img.onerror=()=>{img.remove();art.textContent="KENNIX"};art.append(img)}else art.textContent="KENNIX";const tag=document.createElement("span");tag.className="product-tag";tag.textContent=p.Category||"KENNIX";const add=document.createElement("button");add.className="add-btn";add.type="button";add.textContent="+";add.setAttribute("aria-label","Add to bag");add.addEventListener("click",e=>{e.stopPropagation();openProduct(p)});art.append(tag,add);const info=document.createElement("div");info.className="product-info";const d=document.createElement("div");const name=document.createElement("h3");name.textContent=p.Name||"Unnamed product";const desc=document.createElement("p");desc.textContent=p.Description||"";d.append(name,desc);const price=document.createElement("span");price.className="price";price.innerHTML=p.compare_at_price?`<span class="old-price">${money(p.compare_at_price)}</span><span class="sale-price">${money(p.Price)}</span><small class="discount-pill">13% OFF</small>`:money(p.Price);info.append(d,price);card.append(art,info);card.addEventListener("click",()=>openProduct(p));card.addEventListener("keydown",e=>{if(e.key==="Enter")openProduct(p)});box.append(card)})}
+list.forEach(p=>{const card=document.createElement("article");card.className="product-card";card.dataset.productId=String(p.id);card.tabIndex=0;const art=document.createElement("div");art.className="product-art";if(p.Image_Url){const img=document.createElement("img");img.src=p.Image_Url;img.alt=p.Name||"KENNIX product";img.loading="lazy";img.onerror=()=>{img.remove();art.textContent="KENNIX"};art.append(img)}else art.textContent="KENNIX";const tag=document.createElement("span");tag.className="product-tag";tag.textContent=p.Category||"KENNIX";const add=document.createElement("button");add.className="add-btn";add.type="button";add.textContent="+";add.setAttribute("aria-label","Add to bag");add.addEventListener("click",e=>{e.stopPropagation();openProduct(p)});art.append(tag,add);const info=document.createElement("div");info.className="product-info";const d=document.createElement("div");const name=document.createElement("h3");name.textContent=p.Name||"Unnamed product";const desc=document.createElement("p");desc.textContent=p.Description||"";d.append(name,desc);const price=document.createElement("span");price.className="price";price.innerHTML=p.compare_at_price?`<span class="old-price">${money(p.compare_at_price)}</span><span class="sale-price">${money(p.Price)}</span><small class="discount-pill">13% OFF</small>`:money(p.Price);info.append(d,price);card.append(art,info);card.addEventListener("click",()=>openProduct(p));card.addEventListener("keydown",e=>{if(e.key==="Enter")openProduct(p)});box.append(card)})}
 
 function renderHomeCollections(){
  const makeCard=p=>{
@@ -297,4 +297,193 @@ function setupTerms(){
  get("open-terms")?.addEventListener("click",e=>{e.preventDefault();get("terms-decline-note").hidden=true;show();});
 }
 function startKennixLoader(onComplete){const root=get("kennix-page-loader");if(!root){onComplete?.();return}const fill=get("kennix-progress-fill"),number=get("kennix-progress-number");let value=0;const started=Date.now();const tick=setInterval(()=>{const elapsed=Date.now()-started;value=elapsed<2600?Math.min(99,Math.round(elapsed/2600*99)):elapsed<3050?99:100;if(fill)fill.style.width=value+"%";if(number)number.textContent=value+"%";if(value===100){clearInterval(tick);setTimeout(()=>{root.classList.add("is-hidden");setTimeout(()=>{root.remove();onComplete?.()},450)},180)}},45)}
-function init(){startKennixLoader(setupTerms);setupMenu();get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupJoggersCountdown();setupNewsletter();renderCart();loadProducts()}init();
+function init(){startKennixLoader(setupTerms);setupMenu();get("open-cart").onclick=openCart;get("close-cart").onclick=closeCart;get("overlay").onclick=()=>{closeCart();closeProduct()};get("modal-close").onclick=closeProduct;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeProduct()}});get("checkout-btn").onclick=()=>{if(!cart.length){toast("Your bag is empty.");return}openCheckoutForm()};setupSearch();setupFilters();setupSorting();setupCarousel();setupJoggersCountdown();setupNewsletter();renderCart();loadProducts()}
+
+/* KENNIX secondary shopping features — additive layer; checkout and existing store flows stay intact. */
+const KX_STORE_HOME="https://kennixstore.github.io/kennix-store/";
+const KX_WISHLIST_KEY="kennix_wishlist_v1";
+const KX_RECENT_KEY="kennix_recent_v1";
+const KX_CART_KEY="kennix_saved_cart_v1";
+const kxReadList=(key)=>{try{const value=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(value)?value:[]}catch{return[]}};
+let kxWishlistIds=kxReadList(KX_WISHLIST_KEY).map(String).slice(0,100);
+let kxRecentIds=kxReadList(KX_RECENT_KEY).map(String).slice(0,12);
+let kxCompareIds=[];
+let kxCartRestored=false;
+try{
+ const savedCart=JSON.parse(localStorage.getItem(KX_CART_KEY)||"[]");
+ if(Array.isArray(savedCart)){
+  cart=savedCart.filter(item=>item&&item.id!==undefined&&Number(item.quantity)>0&&Number.isFinite(Number(item.Price)))
+    .slice(0,30).map(item=>({...item,quantity:Math.min(20,Math.max(1,Math.floor(Number(item.quantity))))}));
+  kxCartRestored=cart.length>0;
+ }
+}catch{cart=[]}
+const kxSaveList=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch(e){console.warn("KENNIX could not save this preference on the device.",e)}};
+const kxProductById=id=>products.find(p=>String(p.id)===String(id));
+const kxProductUrl=p=>{const u=new URL(KX_STORE_HOME);u.searchParams.set("product",String(p.id));return u.toString()};
+function kxToast(text){if(typeof toast==="function")toast(text)}
+async function kxShareProduct(p){
+ const url=kxProductUrl(p),title=p.Name||"KENNIX product",text=title+" from KENNIX — Your World. Your Style. Your Choice.";
+ try{if(navigator.share){await navigator.share({title,text,url});return}}
+ catch(e){if(e?.name==="AbortError")return}
+ window.open("https://wa.me/?text="+encodeURIComponent(text+"\n"+url),"_blank","noopener");
+}
+function kxShareStore(){
+ const text="Discover KENNIX — fashion, technology and everyday essentials in one place.";
+ try{if(navigator.share){navigator.share({title:"KENNIX",text,url:KX_STORE_HOME}).catch(()=>{});return}}catch{}
+ window.open("https://wa.me/?text="+encodeURIComponent(text+" "+KX_STORE_HOME),"_blank","noopener");
+}
+function kxToggleWishlist(id){
+ const key=String(id);
+ kxWishlistIds=kxWishlistIds.includes(key)?kxWishlistIds.filter(x=>x!==key):[key,...kxWishlistIds].slice(0,100);
+ kxSaveList(KX_WISHLIST_KEY,kxWishlistIds);kxRenderSecondaryShelves();kxDecorateProductCards();
+ kxToast(kxWishlistIds.includes(key)?"Saved to your wishlist.":"Removed from your wishlist.");
+}
+function kxAddRecent(p){
+ const id=String(p.id);kxRecentIds=[id,...kxRecentIds.filter(x=>x!==id)].slice(0,8);
+ kxSaveList(KX_RECENT_KEY,kxRecentIds);kxRenderSecondaryShelves();
+}
+function kxMakeMiniCard(p,label){
+ const card=document.createElement("article");card.className="kx-mini-card";
+ const image=document.createElement("button");image.type="button";image.className="kx-mini-image";image.setAttribute("aria-label","View "+(p.Name||"product"));
+ if(p.Image_Url){const img=document.createElement("img");img.src=p.Image_Url;img.alt=p.Name||"KENNIX product";img.loading="lazy";image.append(img)}else image.textContent="KENNIX";
+ image.addEventListener("click",()=>openProduct(p));
+ const body=document.createElement("div");body.className="kx-mini-body";
+ const category=document.createElement("small");category.textContent=p.Category||"KENNIX";
+ const name=document.createElement("strong");name.textContent=p.Name||"Product";
+ const price=document.createElement("b");price.textContent=money(p.Price);
+ const actions=document.createElement("div");actions.className="kx-mini-actions";
+ const view=document.createElement("button");view.type="button";view.textContent="VIEW ITEM";view.addEventListener("click",()=>openProduct(p));actions.append(view);
+ if(label==="wishlist"){const remove=document.createElement("button");remove.type="button";remove.textContent="REMOVE";remove.addEventListener("click",()=>kxToggleWishlist(p.id));actions.append(remove)}
+ body.append(category,name,price,actions);card.append(image,body);return card;
+}
+function kxFillShelf(id,items,label,emptyText){
+ const box=get(id);if(!box)return;box.replaceChildren();
+ if(!items.length){const empty=document.createElement("p");empty.className="kx-empty";empty.textContent=emptyText;box.append(empty);return}
+ items.forEach(p=>box.append(kxMakeMiniCard(p,label)));
+}
+function kxEnsureSecondaryUI(){
+ if(get("kx-secondary-hub"))return;
+ const grid=get("product-grid");if(!grid)return;
+ const hub=document.createElement("section");hub.id="kx-secondary-hub";hub.className="kx-secondary-hub";
+ hub.innerHTML=
+  '<div class="kx-secondary-heading"><p class="eyebrow">YOUR KENNIX SPACE</p><h2>Keep your <em>favourites close.</em></h2><p>Save products, revisit items and compare your picks before ordering.</p></div>'+
+  '<div class="kx-secondary-block"><div class="kx-secondary-title"><h3>My wishlist</h3><span>Saved on this device</span></div><div class="kx-mini-grid" id="kx-wishlist-items"><p class="kx-empty">Tap ♡ on a product to save it here.</p></div></div>'+
+  '<div class="kx-secondary-block"><div class="kx-secondary-title"><h3>Recently viewed</h3><span>Your latest product views</span></div><div class="kx-mini-grid" id="kx-recent-items"><p class="kx-empty">Products you open will appear here.</p></div></div>'+
+  '<div class="kx-invite-card"><div><p class="eyebrow">SHARE THE KENNIX EXPERIENCE</p><h3>Know someone who would love KENNIX?</h3><p>Share the store with a friend or family member.</p></div><button type="button" id="kx-invite-button">INVITE A FRIEND ↗</button></div>';
+ grid.insertAdjacentElement("afterend",hub);
+}
+function kxRenderSecondaryShelves(){
+ kxEnsureSecondaryUI();
+ const wish=kxWishlistIds.map(kxProductById).filter(Boolean);
+ const recent=kxRecentIds.map(kxProductById).filter(Boolean);
+ kxFillShelf("kx-wishlist-items",wish,"wishlist","Your wishlist is empty. Tap ♡ on any product to save it.");
+ kxFillShelf("kx-recent-items",recent,"recent","Products you open will appear here.");
+}
+function kxUpdateCompareBar(){
+ let bar=get("kx-compare-bar");
+ if(!bar){bar=document.createElement("div");bar.id="kx-compare-bar";bar.className="kx-compare-bar";document.body.append(bar)}
+ bar.replaceChildren();
+ if(!kxCompareIds.length){bar.hidden=true;return}
+ bar.hidden=false;
+ const label=document.createElement("span");label.textContent=kxCompareIds.length+" product"+(kxCompareIds.length===1?"":"s")+" selected";
+ const compare=document.createElement("button");compare.type="button";compare.textContent="COMPARE";compare.disabled=kxCompareIds.length<2;compare.addEventListener("click",kxOpenCompare);
+ const clear=document.createElement("button");clear.type="button";clear.className="kx-compare-clear";clear.textContent="CLEAR";clear.addEventListener("click",()=>{kxCompareIds=[];kxUpdateCompareBar();kxDecorateProductCards()});
+ bar.append(label,compare,clear);
+}
+function kxToggleCompare(id){
+ const key=String(id);
+ if(kxCompareIds.includes(key))kxCompareIds=kxCompareIds.filter(x=>x!==key);
+ else if(kxCompareIds.length>=3){kxToast("Compare up to 3 products at a time.");return}
+ else kxCompareIds.push(key);
+ kxUpdateCompareBar();kxDecorateProductCards();
+}
+function kxOpenCompare(){
+ const selected=kxCompareIds.map(kxProductById).filter(Boolean);
+ if(selected.length<2){kxToast("Choose at least 2 products to compare.");return}
+ get("kx-compare-modal")?.remove();
+ const overlay=document.createElement("div");overlay.id="kx-compare-modal";overlay.className="kx-compare-overlay";
+ const panel=document.createElement("section");panel.className="kx-compare-panel";panel.setAttribute("role","dialog");panel.setAttribute("aria-modal","true");panel.setAttribute("aria-label","Compare KENNIX products");
+ const top=document.createElement("div");top.className="kx-compare-top";
+ const title=document.createElement("h2");title.textContent="Compare products";
+ const close=document.createElement("button");close.type="button";close.textContent="×";close.setAttribute("aria-label","Close comparison");close.addEventListener("click",()=>overlay.remove());
+ top.append(title,close);
+ const table=document.createElement("table");const tbody=document.createElement("tbody");
+ const rows=[["Product",p=>p.Name||"Product"],["Price",p=>money(p.Price)],["Category",p=>p.Category||"—"],["Description",p=>p.Description||"No description provided."]];
+ rows.forEach(([heading,getValue])=>{
+  const tr=document.createElement("tr");const th=document.createElement("th");th.textContent=heading;tr.append(th);
+  selected.forEach(p=>{const td=document.createElement("td");td.textContent=getValue(p);tr.append(td)});tbody.append(tr);
+ });
+ table.append(tbody);panel.append(top,table);overlay.append(panel);
+ overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove()});
+ document.body.append(overlay);
+}
+function kxDecorateProductCards(){
+ document.querySelectorAll("#product-grid .product-card").forEach(card=>{
+  const p=kxProductById(card.dataset.productId);if(!p)return;
+  let tools=card.querySelector(".kx-card-tools");
+  if(!tools){tools=document.createElement("div");tools.className="kx-card-tools";card.append(tools)}
+  tools.replaceChildren();
+  const save=document.createElement("button");save.type="button";save.textContent=kxWishlistIds.includes(String(p.id))?"♥ SAVED":"♡ SAVE";save.setAttribute("aria-pressed",String(kxWishlistIds.includes(String(p.id))));
+  save.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();kxToggleWishlist(p.id)});
+  const compare=document.createElement("button");compare.type="button";compare.textContent=kxCompareIds.includes(String(p.id))?"✓ COMPARE":"COMPARE";compare.setAttribute("aria-pressed",String(kxCompareIds.includes(String(p.id))));
+  compare.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();kxToggleCompare(p.id)});
+  const share=document.createElement("button");share.type="button";share.textContent="SHARE ↗";share.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();kxShareProduct(p)});
+  [save,compare,share].forEach(button=>button.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" ")e.stopPropagation()}));
+  tools.append(save,compare,share);
+ });
+}
+function kxRenderRelated(p){
+ const modal=get("modal-content");if(!modal)return;
+ modal.querySelector(".kx-related-products")?.remove();
+ let related=products.filter(item=>String(item.id)!==String(p.id)&&categoryKey(item.Category)===categoryKey(p.Category)).slice(0,4);
+ if(related.length<2)related=products.filter(item=>String(item.id)!==String(p.id)).slice(0,4);
+ if(!related.length)return;
+ const section=document.createElement("section");section.className="kx-related-products";
+ const heading=document.createElement("h3");heading.textContent="You may also like";
+ const row=document.createElement("div");row.className="kx-related-grid";
+ related.forEach(item=>row.append(kxMakeMiniCard(item,"related")));
+ section.append(heading,row);modal.append(section);
+}
+function kxAddModalTools(p){
+ const info=get("modal-content")?.querySelector(".modal-info");if(!info)return;
+ info.querySelector(".kx-modal-tools")?.remove();
+ const row=document.createElement("div");row.className="kx-modal-tools";
+ const save=document.createElement("button");save.type="button";save.textContent=kxWishlistIds.includes(String(p.id))?"♥ SAVED TO WISHLIST":"♡ SAVE TO WISHLIST";
+ save.addEventListener("click",()=>{kxToggleWishlist(p.id);save.textContent=kxWishlistIds.includes(String(p.id))?"♥ SAVED TO WISHLIST":"♡ SAVE TO WISHLIST"});
+ const share=document.createElement("button");share.type="button";share.textContent="SHARE PRODUCT ↗";share.addEventListener("click",()=>kxShareProduct(p));
+ const ask=document.createElement("a");ask.className="kx-availability-link";ask.target="_blank";ask.rel="noopener";ask.textContent="ASK ABOUT AVAILABILITY";
+ ask.href="https://wa.me/2349135102119?text="+encodeURIComponent("Hello KENNIX, please help me confirm the availability of "+(p.Name||"this product")+".");
+ row.append(save,share,ask);info.append(row);
+}
+const kxOriginalRenderProducts=renderProducts;
+renderProducts=function(...args){
+ kxOriginalRenderProducts(...args);kxRenderSecondaryShelves();kxDecorateProductCards();
+ if(!window.__kxDeepLinkOpened){
+  const id=new URLSearchParams(location.search).get("product");const product=id?kxProductById(id):null;
+  if(product){window.__kxDeepLinkOpened=true;setTimeout(()=>openProduct(product),80)}
+ }
+};
+const kxOriginalOpenProduct=openProduct;
+openProduct=async function(p){
+ kxAddRecent(p);await kxOriginalOpenProduct(p);kxAddModalTools(p);kxRenderRelated(p);
+};
+const kxOriginalRenderCart=renderCart;
+renderCart=function(...args){
+ const result=kxOriginalRenderCart(...args);
+ try{localStorage.setItem(KX_CART_KEY,JSON.stringify(cart))}catch(e){console.warn("KENNIX could not save the bag on this device.",e)}
+ const box=get("cart-items");
+ if(box&&kxCartRestored&&cart.length&&!box.querySelector(".kx-saved-bag-note")){
+  const note=document.createElement("p");note.className="kx-saved-bag-note";note.textContent="Your saved bag is back. Your items were kept on this device.";box.prepend(note);
+ }
+ return result;
+};
+function kxInitSecondaryFeatures(){
+ kxEnsureSecondaryUI();kxRenderSecondaryShelves();kxUpdateCompareBar();
+ get("kx-invite-button")?.addEventListener("click",kxShareStore);
+ if(kxCartRestored)kxToast("Your saved KENNIX bag is ready.");
+ document.addEventListener("keydown",e=>{if(e.key==="Escape")get("kx-compare-modal")?.remove()});
+}
+kxInitSecondaryFeatures();
+
+
+init();
