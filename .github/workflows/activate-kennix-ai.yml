@@ -8,7 +8,7 @@ on:
       - '.github/workflows/activate-kennix-ai.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   activate:
@@ -32,6 +32,34 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Missing GitHub secret: SUPABASE_ACCESS_TOKEN" && exit 1)
           test -n "$SUPABASE_PUBLISHABLE_KEY" || (echo "Missing GitHub secret: SUPABASE_PUBLISHABLE_KEY" && exit 1)
 
+      - name: Synchronize public website Supabase key
+        shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          path = Path("kennix-ai.js")
+          source = path.read_text()
+          key = os.environ["SUPABASE_PUBLISHABLE_KEY"]
+          if not key.startswith("sb_publishable_"):
+              raise SystemExit("Expected a Supabase publishable key; refusing to write another key type into public website code.")
+          updated, count = re.subn(r"sb_publishable_[A-Za-z0-9_-]+", lambda _: key, source, count=1)
+          if count != 1:
+              raise SystemExit("Could not locate exactly one website publishable key placeholder.")
+          path.write_text(updated)
+          PY
+          if ! git diff --quiet -- kennix-ai.js; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add kennix-ai.js
+            git commit -m "Sync KENNIX AI website Supabase publishable key"
+            git push
+            echo "Website Supabase publishable key synchronized and published."
+          else
+            echo "Website Supabase publishable key already matches."
+          fi
       - name: Compare website Supabase key with configured project key
         shell: bash
         env:
