@@ -189,6 +189,11 @@ function openCheckoutForm(){
   </div>
   <div class="checkout-field"><label for="checkout-landmark">Landmark <span>(optional)</span></label><input id="checkout-landmark" name="landmark" placeholder="Nearby landmark"></div>
  </section>
+ <section class="checkout-field-group">
+  <h4>Offers (optional)</h4>
+  <div class="checkout-field"><label for="kennix-coupon-code">Coupon code</label><input id="kennix-coupon-code" name="coupon_code" autocomplete="off" placeholder="Enter coupon code"></div>
+  <div class="checkout-field"><label for="kennix-referral-code">Referral code</label><input id="kennix-referral-code" name="referral_code" autocomplete="off" placeholder="Enter referral code"></div>
+ </section>
  <button id="transfer-submit" class="primary-btn" type="submit">PLACE ORDER & GET TRANSFER DETAILS ↗</button>
  <button id="checkout-back" class="checkout-back" type="button">BACK TO BAG</button>
  <p class="checkout-error" id="checkout-error" role="alert"></p>
@@ -207,12 +212,14 @@ function openCheckoutForm(){
    state:form.elements.state.value.trim(),
    landmark:form.elements.landmark.value.trim()
   };
-  const items=cart.map(item=>({product_id:item.id,variant_id:item.variantId,quantity:item.quantity}));
+  const couponCode=form.elements.coupon_code?.value.trim().toUpperCase()||"";
+  const referralCode=form.elements.referral_code?.value.trim().toUpperCase()||"";
+  const items=cart.map(item=>({product_id:item.id,variant_id:null,quantity:item.quantity}));
   try{
    const response=await fetch(`${SUPABASE_URL}/functions/v1/create-manual-transfer-order`,{
     method:"POST",
     headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
-    body:JSON.stringify({customer,items})
+    body:JSON.stringify({customer,items,coupon_code:couponCode,referral_code:referralCode})
    });
    let data;
    try{data=await response.json()}catch{throw new Error(`Checkout service returned an invalid response (${response.status}).`)}
@@ -226,6 +233,7 @@ function openCheckoutForm(){
     <p class="order-reference-notice"><strong>Important:</strong> Copy your KNX order code and keep it somewhere safe. You will need this code to track your order and when contacting KENNIX about your purchase.</p>
     <p>Subtotal: <strong>${money(data.subtotal)}</strong></p>
     <p>First-purchase discount: <strong>−${money(data.discount_amount)}</strong></p>
+    ${Number(data.coupon_discount)>0?'<p>Coupon discount: <strong>−'+money(data.coupon_discount)+'</strong></p>':''}
     <p>Delivery: <strong>FREE</strong></p>
     <p><strong>Estimated arrival:</strong> Your order should arrive within <strong>7 to 18 days</strong> after your payment is confirmed.</p>
     <h3>Transfer ${amount} to:</h3>
