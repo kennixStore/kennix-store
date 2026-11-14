@@ -432,3 +432,11 @@ body{font-family:var(--sans)}
 .kx-order-referral>div{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){.kx-referral-hub{grid-template-columns:1fr;gap:15px;padding:30px 18px}.kx-referral-card{padding:17px}}
 @media(prefers-reduced-motion:reduce){.kx-referral-hub *{scroll-behavior:auto}}
+
+/* KENNIX hero: continuous expanding luxury ripple waves behind the feature card */
+.hero-art .ring{animation:none!important;box-shadow:0 0 0 35px #ffffff06,0 0 0 70px #ffffff03}
+.hero-art .ring::before,.hero-art .ring::after{content:"";position:absolute;inset:-1px;border:1.5px solid rgba(212,175,55,.72);border-radius:50%;transform:scale(.58);opacity:0;pointer-events:none;animation:kxHeroRipple 5.2s cubic-bezier(.12,.55,.32,1) infinite}
+.hero-art .ring::after{animation-delay:2.6s;border-color:rgba(226,207,132,.58)}
+@keyframes kxHeroRipple{0%{transform:scale(.58);opacity:.82}72%{opacity:.25}100%{transform:scale(1.72);opacity:0}}
+.hero-art .front,.hero-art .back,.hero-art .seal{z-index:2}
+@media(prefers-reduced-motion:reduce){.hero-art .ring::before,.hero-art .ring::after{animation:none;opacity:.18;transform:scale(1.15)}}
