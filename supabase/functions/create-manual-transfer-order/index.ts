@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://kennixstore.github.io",
   "Access-Control-Allow-Headers": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Max-Age": "86400",
   "Vary": "Origin",
 };
@@ -25,7 +25,7 @@ const reply = (data: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405);
+  if (req.method !== "POST" && req.method !== "GET") return reply({ error: "Method not allowed" }, 405);
 
   try {
     const url = Deno.env.get("SUPABASE_URL");
@@ -33,6 +33,29 @@ Deno.serve(async (req) => {
     if (!url || !serviceKey) return reply({ error: "Order service is not configured." }, 500);
 
     const supabase = createClient(url, serviceKey);
+    if (req.method === "GET") {
+      const code = new URL(req.url).searchParams.get("referral_code")?.trim().toUpperCase() || "";
+      if (!/^[A-Z0-9]{6,40}$/.test(code)) return reply({ error: "Enter a valid referral code." }, 400);
+      const { data: referral, error: referralError } = await supabase
+        .from("kennix_referral_codes").select("code").eq("code", code).eq("is_active", true).maybeSingle();
+      if (referralError) throw referralError;
+      if (!referral) return reply({ error: "Referral code not found or inactive." }, 404);
+      const { data: rewards, error: rewardsError } = await supabase
+        .from("kennix_referral_rewards").select("status,reward_amount").eq("referral_code", code);
+      if (rewardsError) throw rewardsError;
+      const successful = (rewards || []).filter((row: any) => ["approved", "paid"].includes(row.status));
+      const pending = (rewards || []).filter((row: any) => row.status === "pending");
+      const earned = successful.reduce((sum: number, row: any) => sum + Number(row.reward_amount || 0), 0);
+      return reply({
+        success: true,
+        referral_code: code,
+        successful_referrals: successful.length,
+        pending_referrals: pending.length,
+        earned_amount: Math.round(earned * 100) / 100,
+        target: 5,
+        target_reward: 1500
+      });
+    }
     const body = await req.json();
     const customer = body?.customer;
     const items = body?.items;
@@ -207,15 +230,27 @@ Deno.serve(async (req) => {
 
     if (referralRecord && Number(referralRecord.reward_amount) > 0) {
       const { error: rewardError } = await supabase.from("kennix_referral_rewards").insert({
-        referral_code: referralCode, order_id: order.id,
+        referral_code: referralCode, order_id: order.id, referred_phone: phone,
         reward_amount: Number(referralRecord.reward_amount), status: "pending"
       });
       if (rewardError) console.error("Referral reward record failed:", rewardError);
     }
 
+    let customerReferralCode: string | null = null;
+    const { data: personalCode, error: personalCodeError } = await supabase.rpc(
+      "kennix_get_or_create_customer_referral",
+      { p_phone_key: phone, p_referrer_name: customer.name.trim().slice(0, 120) }
+    );
+    if (personalCodeError) {
+      console.error("Customer referral code creation failed:", personalCodeError);
+    } else if (typeof personalCode === "string") {
+      customerReferralCode = personalCode;
+    }
+
     return reply({
       success: true,
       order_id: order.id,
+      customer_referral_code: customerReferralCode,
       order_reference: reference,
       amount: finalTotal,
       subtotal: total,
