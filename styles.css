@@ -326,3 +326,64 @@ body{font-family:var(--sans)}
 .announcement-item.joggers{background:transparent!important;color:#fff!important}
 .announcement-item:before,
 .announcement-item:after{color:#e8c96b!important}
+
+
+
+/* KENNIX secondary shopping features */
+.kx-secondary-hub{margin:42px 0 8px;padding:28px 0 10px;border-top:1px solid var(--line,#e4e7e1)}
+.kx-secondary-heading{margin-bottom:22px}
+.kx-secondary-heading h2{font:600 clamp(25px,4vw,38px)/1.15 var(--serif,Georgia,serif);color:var(--green,#123d2d);margin:6px 0}
+.kx-secondary-heading h2 em{color:#a48320}
+.kx-secondary-heading>p:last-child{font-size:12px;color:var(--muted,#788078)}
+.kx-secondary-block{margin:28px 0}
+.kx-secondary-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.kx-secondary-title h3{margin:0;font:600 21px var(--serif,Georgia,serif);color:var(--green,#123d2d)}
+.kx-secondary-title span{font-size:10px;color:var(--muted,#788078)}
+.kx-mini-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kx-mini-card{min-width:0;background:#fff;border:1px solid var(--line,#e5e7e2);border-radius:4px;overflow:hidden}
+.kx-mini-image{width:100%;height:150px;border:0;padding:0;background:#f4f4ef;display:grid;place-items:center;color:#5e665e;font-size:12px;cursor:pointer;overflow:hidden}
+.kx-mini-image img{width:100%;height:100%;object-fit:cover}
+.kx-mini-body{padding:10px;display:grid;gap:5px}
+.kx-mini-body small{color:#8b7130;font-size:9px;text-transform:uppercase;letter-spacing:.6px}
+.kx-mini-body strong{font-size:12px;line-height:1.4;color:#1c2a21;min-height:32px}
+.kx-mini-body>b{font-size:12px;color:#173b2d}
+.kx-mini-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.kx-mini-actions button{border:1px solid #d8ded7;background:#fff;color:#244334;padding:7px 8px;font-size:8px;font-weight:800;letter-spacing:.4px;cursor:pointer}
+.kx-mini-actions button:hover{background:#f1f4ee}
+.kx-empty{grid-column:1/-1;padding:16px;border:1px dashed #d8ded7;color:#7b847b;font-size:11px}
+.kx-invite-card{margin-top:32px;padding:22px;background:#f3f1f7;border:1px solid #e4deed;display:flex;justify-content:space-between;align-items:center;gap:18px}
+.kx-invite-card h3{margin:5px 0;color:#282039;font:600 22px var(--serif,Georgia,serif)}
+.kx-invite-card p:last-child{margin:0;color:#687069;font-size:11px}
+.kx-invite-card button,.kx-compare-bar button{border:0;background:#2c1846;color:#fff;padding:12px 15px;font-size:9px;font-weight:800;letter-spacing:.8px;cursor:pointer;white-space:nowrap}
+.kx-card-tools{display:flex;gap:5px;flex-wrap:wrap;padding:0 10px 10px}
+.kx-card-tools button{flex:1 1 auto;border:1px solid #e0e3dc;background:#fff;color:#314337;padding:7px 4px;font-size:8px;font-weight:800;letter-spacing:.25px;cursor:pointer}
+.kx-card-tools button[aria-pressed="true"]{border-color:#72509a;color:#62418a;background:#f7f3fb}
+.kx-compare-bar{position:fixed;z-index:1000;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:10px 12px;background:#fff;border:1px solid #ded8e8;border-radius:6px;box-shadow:0 8px 30px #0002;color:#2d2636;font-size:11px}
+.kx-compare-bar[hidden]{display:none}
+.kx-compare-bar button:disabled{opacity:.45;cursor:not-allowed}
+.kx-compare-bar .kx-compare-clear{background:#fff;color:#513b6a;border:1px solid #d8d0e3}
+.kx-compare-overlay{position:fixed;inset:0;z-index:1200;background:#10101499;display:grid;place-items:center;padding:14px}
+.kx-compare-panel{width:min(900px,100%);max-height:85vh;overflow:auto;background:#fff;border-radius:7px;padding:20px;color:#202820}
+.kx-compare-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.kx-compare-top h2{margin:0;color:#2d2040}
+.kx-compare-top button{border:0;background:#f2eef6;color:#38224e;width:34px;height:34px;font-size:23px;cursor:pointer}
+.kx-compare-panel table{width:100%;border-collapse:collapse;table-layout:fixed}
+.kx-compare-panel th,.kx-compare-panel td{padding:12px;border:1px solid #e5e5e0;text-align:left;vertical-align:top;font-size:11px;overflow-wrap:anywhere}
+.kx-compare-panel th{width:100px;background:#f6f4f8;color:#49345d}
+.kx-related-products{margin-top:26px;padding-top:20px;border-top:1px solid var(--line,#e5e5e0)}
+.kx-related-products>h3{font:600 21px var(--serif,Georgia,serif);color:var(--green,#123d2d)}
+.kx-related-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kx-modal-tools{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+.kx-modal-tools button,.kx-availability-link{display:inline-flex;align-items:center;justify-content:center;padding:10px 12px;border:1px solid #ded8e8;background:#fff;color:#38224e;font-size:9px;font-weight:800;text-decoration:none;cursor:pointer}
+.kx-modal-tools button:first-child{background:#f5f1fa}
+.kx-saved-bag-note{padding:9px 11px;margin:0 0 10px;background:#f4f0f8;color:#4c3861;font-size:10px;border-left:3px solid #7652a0}
+@media(max-width:700px){
+ .kx-mini-grid,.kx-related-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .kx-mini-image{height:132px}
+ .kx-invite-card{display:block;padding:18px}
+ .kx-invite-card button{margin-top:15px}
+ .kx-compare-bar{width:calc(100% - 22px);justify-content:center;bottom:10px;gap:8px}
+ .kx-compare-bar button{padding:10px 11px}
+ .kx-compare-panel{padding:13px}
+ .kx-compare-panel th,.kx-compare-panel td{padding:8px;font-size:10px}
+}
